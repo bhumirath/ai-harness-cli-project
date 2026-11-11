@@ -8,8 +8,7 @@ labels: bug
 
 **What you expected**
 
-**Steps to reproduce**
-1.
+**Steps to reproduce** 1.
 
 **Environment** (browser / OS / version / dev compose or production)
 
