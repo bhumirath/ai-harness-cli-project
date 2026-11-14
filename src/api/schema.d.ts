@@ -30,6 +30,38 @@ export interface paths {
         get: operations["MeController_me"];
         put?: never;
         post?: never;
+        delete: operations["MeController_deleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MeController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthController_publicConfig"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -212,6 +244,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AccountRecoveryController_forgot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AccountRecoveryController_reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AccountRecoveryController_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AccountRecoveryController_resend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CredentialsController_list"];
+        put?: never;
+        post: operations["CredentialsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credentials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["CredentialsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["CredentialsController_update"];
+        trace?: never;
+    };
+    "/api/credentials/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CredentialsController_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoiceController_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/voice/transcribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoiceController_transcribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/voice/speak": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoiceController_speak"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/channels": {
         parameters: {
             query?: never;
@@ -303,54 +495,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["ModelsController_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/credentials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["CredentialsController_list"];
-        put?: never;
-        post: operations["CredentialsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/credentials/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["CredentialsController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["CredentialsController_update"];
-        trace?: never;
-    };
-    "/api/credentials/{id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["CredentialsController_test"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -508,6 +652,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["BillingController_ledger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReferralsController_mine"];
         put?: never;
         post?: never;
         delete?: never;
@@ -676,6 +836,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/{orgId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminController_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orgs/{orgId}/unsuspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminController_unsuspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/model-prices": {
         parameters: {
             query?: never;
@@ -734,6 +926,102 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["AdminController_retryFailed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ConnectionsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{provider}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ConnectionsController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ConnectionsController_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["McpController_list"];
+        put?: never;
+        post: operations["McpController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcp-servers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["McpController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["McpController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["McpController_update"];
+        trace?: never;
+    };
+    "/api/mcp-servers/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["McpController_refresh"];
         delete?: never;
         options?: never;
         head?: never;
@@ -878,6 +1166,86 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["SchedulerController_runNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TemplatesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-templates/{id}/use": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TemplatesController_use"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/{id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TemplatesController_share"];
+        delete: operations["TemplatesController_unshare"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shared-agents/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TemplatesController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shared-agents/{token}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TemplatesController_import"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1085,6 +1453,16 @@ export interface components {
              */
             balanceMicro: string;
         };
+        FreeQuotaDto: {
+            used: number;
+            /** @description 0 = no free messages on this plan */
+            limit: number;
+            /**
+             * Format: date-time
+             * @description next reset (Bangkok midnight)
+             */
+            resetAt: string;
+        };
         MeResponse: {
             user: components["schemas"]["UserDto"];
             orgs: components["schemas"]["OrgMembershipDto"][];
@@ -1092,6 +1470,26 @@ export interface components {
             /** @enum {string} */
             plan: "free" | "pro" | "pro_plus" | "team";
             wallet: components["schemas"]["WalletSummaryDto"];
+            /**
+             * Format: date-time
+             * @description current org is suspended: show a notice, other calls return 403 ORG_SUSPENDED
+             */
+            suspendedAt?: string | null;
+            /** @description daily free-model quota (BE-091) */
+            freeQuota: components["schemas"]["FreeQuotaDto"];
+        };
+        DeleteAccountDto: {
+            /** @description current password */
+            password: string;
+            /**
+             * @description must be exactly "DELETE"
+             * @example DELETE
+             */
+            confirm: string;
+        };
+        AuthConfigResponse: {
+            /** @description Turnstile site key; null = no captcha */
+            turnstileSiteKey?: string | null;
         };
         RegisterDto: {
             /** @example somchai@example.com */
@@ -1104,6 +1502,13 @@ export interface components {
              * @enum {string}
              */
             locale: "th" | "en";
+            /** @description Cloudflare Turnstile token (required when GET /api/auth/config returns a site key) */
+            captchaToken?: string;
+            /**
+             * @description referral code of the inviting user
+             * @example K7PX2MQA
+             */
+            ref?: string;
         };
         AuthResponse: {
             accessToken: string;
@@ -1169,73 +1574,16 @@ export interface components {
         DeviceTokenDto: {
             deviceCode: string;
         };
-        ChannelInfoDto: {
-            /** @enum {string} */
-            channel: "line" | "telegram";
-            /** @description configured on this server */
-            enabled: boolean;
-            /** @description link to open the bot chat */
-            botUrl?: string | null;
+        ForgotPasswordDto: {
+            /** @example somchai@example.com */
+            email: string;
         };
-        ChannelAccountDto: {
-            id: string;
-            /** @enum {string} */
-            channel: "line" | "telegram";
-            displayName?: string | null;
-            /** @description null = the first agent */
-            agentId?: string | null;
-            /** Format: date-time */
-            linkedAt: string;
+        ResetPasswordDto: {
+            token: string;
+            password: string;
         };
-        ChannelsOverviewDto: {
-            channels: components["schemas"]["ChannelInfoDto"][];
-            accounts: components["schemas"]["ChannelAccountDto"][];
-        };
-        LinkCodeDto: {
-            /**
-             * @description send this to the bot within 15 minutes
-             * @example K7PX2M
-             */
-            code: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
-        UpdateChannelAccountDto: {
-            /** @description agent that answers in this chat; null = first agent */
-            agentId?: string | null;
-        };
-        ModelPricingDto: {
-            /** @description micro-credits per 1M input tokens (incl. markup) */
-            inputPerMTokMicro: string;
-            outputPerMTokMicro: string;
-            cachedInputPerMTokMicro: string;
-        };
-        AvailableModelDto: {
-            /** @description Model row id (use with DELETE /api/models/:id) */
-            id: string;
-            /** @example byok:0190…:gpt-4.1 */
-            ref: string;
-            /** @enum {string} */
-            provider: "openai" | "anthropic" | "gemini" | "xai" | "openai_compatible";
-            modelId: string;
-            displayName: string;
-            /** @enum {string} */
-            source: "byok" | "platform";
-            credentialId?: string;
-            credentialLabel?: string;
-            contextWindow?: number;
-            supportsVision: boolean;
-            supportsTools: boolean;
-            pricing?: components["schemas"]["ModelPricingDto"];
-        };
-        AddModelDto: {
-            /** @example llama3.1:8b */
-            modelId: string;
-            displayName?: string;
-        };
-        AddedModelDto: {
-            id: string;
-            ref: string;
+        VerifyEmailDto: {
+            token: string;
         };
         CredentialDto: {
             id: string;
@@ -1293,6 +1641,102 @@ export interface components {
             latencyMs?: number;
             models: components["schemas"]["TestModelDto"][];
             error?: components["schemas"]["TestErrorDto"];
+        };
+        VoiceInfoDto: {
+            /** @description platform voice available (paid plans) */
+            platformAvailable: boolean;
+            /** @description micro-credits per minute of audio (platform only) */
+            sttPriceMicroPerMin: string;
+            /** @description micro-credits per 1,000 characters (platform only) */
+            ttsPriceMicroPer1kChars: string;
+            voices: string[];
+            maxAudioBytes: number;
+            maxTtsChars: number;
+        };
+        TranscriptDto: {
+            text: string;
+            durationSec: number;
+            /** @description micro-credits charged (0 with your own key) */
+            chargedMicro: string;
+        };
+        SpeakDto: {
+            text: string;
+            /**
+             * @default alloy
+             * @enum {string}
+             */
+            voice: "alloy" | "ash" | "coral" | "echo" | "fable" | "nova" | "onyx" | "sage" | "shimmer";
+            credentialId?: string;
+        };
+        ChannelInfoDto: {
+            /** @enum {string} */
+            channel: "line" | "telegram";
+            /** @description configured on this server */
+            enabled: boolean;
+            /** @description link to open the bot chat */
+            botUrl?: string | null;
+        };
+        ChannelAccountDto: {
+            id: string;
+            /** @enum {string} */
+            channel: "line" | "telegram";
+            displayName?: string | null;
+            /** @description null = the first agent */
+            agentId?: string | null;
+            /** Format: date-time */
+            linkedAt: string;
+        };
+        ChannelsOverviewDto: {
+            channels: components["schemas"]["ChannelInfoDto"][];
+            accounts: components["schemas"]["ChannelAccountDto"][];
+        };
+        LinkCodeDto: {
+            /**
+             * @description send this to the bot within 15 minutes
+             * @example K7PX2M
+             */
+            code: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        UpdateChannelAccountDto: {
+            /** @description agent that answers in this chat; null = first agent */
+            agentId?: string | null;
+        };
+        ModelPricingDto: {
+            /** @description micro-credits per 1M input tokens (incl. markup) */
+            inputPerMTokMicro: string;
+            outputPerMTokMicro: string;
+            cachedInputPerMTokMicro: string;
+        };
+        AvailableModelDto: {
+            /** @description Model row id (use with DELETE /api/models/:id) */
+            id: string;
+            /** @example byok:0190…:gpt-4.1 */
+            ref: string;
+            /** @enum {string} */
+            provider: "openai" | "anthropic" | "gemini" | "xai" | "openai_compatible";
+            modelId: string;
+            displayName: string;
+            /** @enum {string} */
+            source: "byok" | "platform";
+            credentialId?: string;
+            credentialLabel?: string;
+            contextWindow?: number;
+            supportsVision: boolean;
+            supportsTools: boolean;
+            /** @description free model: no credits, counts against the daily free quota */
+            free: boolean;
+            pricing?: components["schemas"]["ModelPricingDto"];
+        };
+        AddModelDto: {
+            /** @example llama3.1:8b */
+            modelId: string;
+            displayName?: string;
+        };
+        AddedModelDto: {
+            id: string;
+            ref: string;
         };
         UsagePointDto: {
             /** @description YYYY-MM-DD or provider:modelId */
@@ -1442,6 +1886,23 @@ export interface components {
             items: components["schemas"]["LedgerEntryDto"][];
             nextCursor?: string | null;
         };
+        ReferralInfoDto: {
+            /** @description false = program off (amounts not set) */
+            enabled: boolean;
+            /** @example K7PX2MQA */
+            code: string;
+            /** @example https://app.example.com/register?ref=K7PX2MQA */
+            link: string;
+            /** @description people who signed up with my code */
+            invited: number;
+            /** @description of those, how many made a first payment (rewarded) */
+            rewarded: number;
+            /** @description micro-credits I get per rewarded friend */
+            rewardMicro: string;
+            /** @description micro-credits my friend gets on their first payment */
+            friendMicro: string;
+            maxPerMonth: number;
+        };
         SubscriptionInfoDto: {
             /** @enum {string} */
             planCode: "free" | "pro" | "pro_plus" | "team";
@@ -1498,6 +1959,12 @@ export interface components {
             personalOrgId?: string | null;
             plan: string;
             balanceMicro: string;
+            /**
+             * Format: date-time
+             * @description personal org suspended (BE-087)
+             */
+            suspendedAt?: string | null;
+            suspendedReason?: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1532,6 +1999,16 @@ export interface components {
             /** @description signed micro-credits, e.g. "5000000" or "-1000000" */
             deltaMicro: string;
             reason: string;
+        };
+        SuspendOrgDto: {
+            /** @example Spam via Telegram bot */
+            reason: string;
+        };
+        OrgSuspensionDto: {
+            orgId: string;
+            /** Format: date-time */
+            suspendedAt?: string | null;
+            suspendedReason?: string | null;
         };
         ModelPriceDto: {
             provider: string;
@@ -1578,6 +2055,100 @@ export interface components {
         RetriedDto: {
             retried: number;
         };
+        ConnectionInfoDto: {
+            accountEmail?: string | null;
+            accountName?: string | null;
+            scopes: string[];
+            /** @enum {string} */
+            status: "active" | "error";
+            lastError?: string | null;
+            /** Format: date-time */
+            connectedAt: string;
+        };
+        IntegrationDto: {
+            /** @example google */
+            provider: string;
+            displayName: string;
+            /** @description OAuth app configured on this server */
+            configured: boolean;
+            connection?: components["schemas"]["ConnectionInfoDto"] | null;
+        };
+        StartConnectionDto: {
+            /**
+             * @description app path to return to (same site only)
+             * @example /settings/connections
+             */
+            returnTo?: string;
+        };
+        StartConnectionResponse: {
+            /** @description send the browser here */
+            authorizeUrl: string;
+        };
+        McpToolDto: {
+            /** @description tool name on the server */
+            name: string;
+            /** @description name agents see: mcp__<server>__<tool> */
+            agentName: string;
+            description: string;
+            /** @description runs without approval */
+            readOnly: boolean;
+            disabled: boolean;
+        };
+        McpServerDto: {
+            id: string;
+            name: string;
+            url: string;
+            /** @enum {string} */
+            transport: "streamable_http" | "sse";
+            /** @description header names only — values are never returned */
+            headerNames: string[];
+            enabled: boolean;
+            tools: components["schemas"]["McpToolDto"][];
+            lastError?: string | null;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateMcpServerDto: {
+            /**
+             * @description lowercase slug (a-z, 0-9, -), used in tool names
+             * @example github
+             */
+            name: string;
+            /** @example https://mcp.example.com/mcp */
+            url: string;
+            /**
+             * @default streamable_http
+             * @enum {string}
+             */
+            transport: "streamable_http" | "sse";
+            /**
+             * @example {
+             *       "Authorization": "Bearer …"
+             *     }
+             */
+            headers?: {
+                [key: string]: string;
+            };
+            /** @default true */
+            enabled: boolean;
+            readOnlyTools?: string[];
+            disabledTools?: string[];
+        };
+        UpdateMcpServerDto: {
+            name?: string;
+            url?: string;
+            /** @enum {string} */
+            transport?: "streamable_http" | "sse";
+            /** @description replaces all headers; {} removes them */
+            headers?: {
+                [key: string]: string;
+            };
+            enabled?: boolean;
+            readOnlyTools?: string[];
+            disabledTools?: string[];
+        };
         ToolInfoDto: {
             name: string;
             sideEffect: boolean;
@@ -1596,6 +2167,9 @@ export interface components {
             autoApprovedTools: string[];
             defaultChannel?: string | null;
             memoryEnabled: boolean;
+            mcpServerIds: string[];
+            /** @description public share token (link: APP_URL/t/<token>); null = not shared */
+            shareToken?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1608,9 +2182,9 @@ export interface components {
             /** @example byok:<credentialId>:gpt-4.1 */
             modelRef: string;
             temperature?: number;
-            tools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email")[];
+            tools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email" | "gmail_search" | "gmail_read" | "gmail_draft" | "gmail_send" | "calendar_list_events" | "calendar_create_event" | "notion_search" | "notion_read_page" | "notion_append" | "notion_create_page")[];
             /** @description side-effect tools allowed without asking */
-            autoApprovedTools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email")[];
+            autoApprovedTools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email" | "gmail_search" | "gmail_read" | "gmail_draft" | "gmail_send" | "calendar_list_events" | "calendar_create_event" | "notion_search" | "notion_read_page" | "notion_append" | "notion_create_page")[];
             /** @enum {string} */
             defaultChannel?: "web" | "email" | "line" | "telegram";
             /**
@@ -1618,6 +2192,8 @@ export interface components {
              * @default true
              */
             memoryEnabled: boolean;
+            /** @description MCP servers whose tools this agent may use (BE-060) */
+            mcpServerIds?: string[];
         };
         UpdateAgentDto: {
             name?: string;
@@ -1626,8 +2202,8 @@ export interface components {
             modelRef?: string;
             /** @description null = model default */
             temperature?: number | null;
-            tools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email")[];
-            autoApprovedTools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email")[];
+            tools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email" | "gmail_search" | "gmail_read" | "gmail_draft" | "gmail_send" | "calendar_list_events" | "calendar_create_event" | "notion_search" | "notion_read_page" | "notion_append" | "notion_create_page")[];
+            autoApprovedTools?: ("current_time" | "web_search" | "fetch_url" | "set_reminder" | "send_email" | "gmail_search" | "gmail_read" | "gmail_draft" | "gmail_send" | "calendar_list_events" | "calendar_create_event" | "notion_search" | "notion_read_page" | "notion_append" | "notion_create_page")[];
             /** @enum {string} */
             defaultChannel?: "web" | "email" | "line" | "telegram";
             /**
@@ -1635,6 +2211,8 @@ export interface components {
              * @default true
              */
             memoryEnabled: boolean;
+            /** @description MCP servers whose tools this agent may use (BE-060) */
+            mcpServerIds?: string[];
         };
         StartRunDto: {
             /** @example Summarise today’s AI news in 5 bullets */
@@ -1719,6 +2297,57 @@ export interface components {
             deliverTo?: "web" | "email" | "line" | "telegram";
             enabled?: boolean;
         };
+        LocalizedTextDto: {
+            th: string;
+            en: string;
+        };
+        TemplateScheduleDto: {
+            /** @example ทุกวัน 7 โมงเช้า */
+            text: string;
+            prompt: string;
+            /** @enum {string} */
+            deliverTo: "web" | "email" | "line" | "telegram";
+        };
+        AgentTemplateDto: {
+            id: string;
+            /** @enum {string} */
+            category: "daily" | "work" | "money" | "dev" | "content";
+            name: components["schemas"]["LocalizedTextDto"];
+            description: components["schemas"]["LocalizedTextDto"];
+            systemPrompt: string;
+            tools: string[];
+            schedule?: components["schemas"]["TemplateScheduleDto"];
+        };
+        UseTemplateDto: {
+            /** @example platform:openai_compatible:free/auto */
+            modelRef: string;
+            name?: string;
+            /** @description also create the suggested scheduled job */
+            withSchedule?: boolean;
+            /** @example Asia/Bangkok */
+            timezone?: string;
+        };
+        UseTemplateResultDto: {
+            agent: components["schemas"]["AgentDto"];
+            job?: components["schemas"]["ScheduledJobDto"] | null;
+            /** @description template tools not available on your plan/server */
+            droppedTools: string[];
+        };
+        ShareLinkDto: {
+            /** @description public token; link = APP_URL/t/<token> */
+            token: string;
+        };
+        SharedAgentDto: {
+            name: string;
+            description?: string | null;
+            systemPrompt: string;
+            tools: string[];
+            /** Format: date-time */
+            sharedAt: string;
+        };
+        ImportSharedDto: {
+            modelRef: string;
+        };
         NotificationDto: {
             id: string;
             type: string;
@@ -1801,7 +2430,10 @@ export type SchemaHealthResponse = components['schemas']['HealthResponse'];
 export type SchemaUserDto = components['schemas']['UserDto'];
 export type SchemaOrgMembershipDto = components['schemas']['OrgMembershipDto'];
 export type SchemaWalletSummaryDto = components['schemas']['WalletSummaryDto'];
+export type SchemaFreeQuotaDto = components['schemas']['FreeQuotaDto'];
 export type SchemaMeResponse = components['schemas']['MeResponse'];
+export type SchemaDeleteAccountDto = components['schemas']['DeleteAccountDto'];
+export type SchemaAuthConfigResponse = components['schemas']['AuthConfigResponse'];
 export type SchemaRegisterDto = components['schemas']['RegisterDto'];
 export type SchemaAuthResponse = components['schemas']['AuthResponse'];
 export type SchemaLoginDto = components['schemas']['LoginDto'];
@@ -1814,6 +2446,18 @@ export type SchemaDeviceCodeDto = components['schemas']['DeviceCodeDto'];
 export type SchemaDeviceDecisionDto = components['schemas']['DeviceDecisionDto'];
 export type SchemaDeviceDecisionResultDto = components['schemas']['DeviceDecisionResultDto'];
 export type SchemaDeviceTokenDto = components['schemas']['DeviceTokenDto'];
+export type SchemaForgotPasswordDto = components['schemas']['ForgotPasswordDto'];
+export type SchemaResetPasswordDto = components['schemas']['ResetPasswordDto'];
+export type SchemaVerifyEmailDto = components['schemas']['VerifyEmailDto'];
+export type SchemaCredentialDto = components['schemas']['CredentialDto'];
+export type SchemaCreateCredentialDto = components['schemas']['CreateCredentialDto'];
+export type SchemaUpdateCredentialDto = components['schemas']['UpdateCredentialDto'];
+export type SchemaTestModelDto = components['schemas']['TestModelDto'];
+export type SchemaTestErrorDto = components['schemas']['TestErrorDto'];
+export type SchemaTestCredentialResponse = components['schemas']['TestCredentialResponse'];
+export type SchemaVoiceInfoDto = components['schemas']['VoiceInfoDto'];
+export type SchemaTranscriptDto = components['schemas']['TranscriptDto'];
+export type SchemaSpeakDto = components['schemas']['SpeakDto'];
 export type SchemaChannelInfoDto = components['schemas']['ChannelInfoDto'];
 export type SchemaChannelAccountDto = components['schemas']['ChannelAccountDto'];
 export type SchemaChannelsOverviewDto = components['schemas']['ChannelsOverviewDto'];
@@ -1823,12 +2467,6 @@ export type SchemaModelPricingDto = components['schemas']['ModelPricingDto'];
 export type SchemaAvailableModelDto = components['schemas']['AvailableModelDto'];
 export type SchemaAddModelDto = components['schemas']['AddModelDto'];
 export type SchemaAddedModelDto = components['schemas']['AddedModelDto'];
-export type SchemaCredentialDto = components['schemas']['CredentialDto'];
-export type SchemaCreateCredentialDto = components['schemas']['CreateCredentialDto'];
-export type SchemaUpdateCredentialDto = components['schemas']['UpdateCredentialDto'];
-export type SchemaTestModelDto = components['schemas']['TestModelDto'];
-export type SchemaTestErrorDto = components['schemas']['TestErrorDto'];
-export type SchemaTestCredentialResponse = components['schemas']['TestCredentialResponse'];
 export type SchemaUsagePointDto = components['schemas']['UsagePointDto'];
 export type SchemaUsageTotalsDto = components['schemas']['UsageTotalsDto'];
 export type SchemaUsageResponse = components['schemas']['UsageResponse'];
@@ -1848,6 +2486,7 @@ export type SchemaWalletDto = components['schemas']['WalletDto'];
 export type SchemaAutoTopupSettingsDto = components['schemas']['AutoTopupSettingsDto'];
 export type SchemaLedgerEntryDto = components['schemas']['LedgerEntryDto'];
 export type SchemaLedgerPageDto = components['schemas']['LedgerPageDto'];
+export type SchemaReferralInfoDto = components['schemas']['ReferralInfoDto'];
 export type SchemaSubscriptionInfoDto = components['schemas']['SubscriptionInfoDto'];
 export type SchemaSubscriptionCheckoutDto = components['schemas']['SubscriptionCheckoutDto'];
 export type SchemaCheckoutResponse = components['schemas']['CheckoutResponse'];
@@ -1860,11 +2499,21 @@ export type SchemaAdminPaymentDto = components['schemas']['AdminPaymentDto'];
 export type SchemaAdminPaymentPageDto = components['schemas']['AdminPaymentPageDto'];
 export type SchemaRefundDto = components['schemas']['RefundDto'];
 export type SchemaAdjustWalletDto = components['schemas']['AdjustWalletDto'];
+export type SchemaSuspendOrgDto = components['schemas']['SuspendOrgDto'];
+export type SchemaOrgSuspensionDto = components['schemas']['OrgSuspensionDto'];
 export type SchemaModelPriceDto = components['schemas']['ModelPriceDto'];
 export type SchemaSetModelPriceDto = components['schemas']['SetModelPriceDto'];
 export type SchemaQueueStatsDto = components['schemas']['QueueStatsDto'];
 export type SchemaFailedJobDto = components['schemas']['FailedJobDto'];
 export type SchemaRetriedDto = components['schemas']['RetriedDto'];
+export type SchemaConnectionInfoDto = components['schemas']['ConnectionInfoDto'];
+export type SchemaIntegrationDto = components['schemas']['IntegrationDto'];
+export type SchemaStartConnectionDto = components['schemas']['StartConnectionDto'];
+export type SchemaStartConnectionResponse = components['schemas']['StartConnectionResponse'];
+export type SchemaMcpToolDto = components['schemas']['McpToolDto'];
+export type SchemaMcpServerDto = components['schemas']['McpServerDto'];
+export type SchemaCreateMcpServerDto = components['schemas']['CreateMcpServerDto'];
+export type SchemaUpdateMcpServerDto = components['schemas']['UpdateMcpServerDto'];
 export type SchemaToolInfoDto = components['schemas']['ToolInfoDto'];
 export type SchemaAgentDto = components['schemas']['AgentDto'];
 export type SchemaCreateAgentDto = components['schemas']['CreateAgentDto'];
@@ -1876,6 +2525,14 @@ export type SchemaParsedScheduleDto = components['schemas']['ParsedScheduleDto']
 export type SchemaScheduledJobDto = components['schemas']['ScheduledJobDto'];
 export type SchemaCreateJobDto = components['schemas']['CreateJobDto'];
 export type SchemaUpdateJobDto = components['schemas']['UpdateJobDto'];
+export type SchemaLocalizedTextDto = components['schemas']['LocalizedTextDto'];
+export type SchemaTemplateScheduleDto = components['schemas']['TemplateScheduleDto'];
+export type SchemaAgentTemplateDto = components['schemas']['AgentTemplateDto'];
+export type SchemaUseTemplateDto = components['schemas']['UseTemplateDto'];
+export type SchemaUseTemplateResultDto = components['schemas']['UseTemplateResultDto'];
+export type SchemaShareLinkDto = components['schemas']['ShareLinkDto'];
+export type SchemaSharedAgentDto = components['schemas']['SharedAgentDto'];
+export type SchemaImportSharedDto = components['schemas']['ImportSharedDto'];
 export type SchemaNotificationDto = components['schemas']['NotificationDto'];
 export type SchemaNotificationPageDto = components['schemas']['NotificationPageDto'];
 export type SchemaVapidKeyDto = components['schemas']['VapidKeyDto'];
@@ -1930,6 +2587,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    MeController_deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MeController_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JSON download of your data (API keys/tokens never included) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_publicConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthConfigResponse"];
                 };
             };
         };
@@ -2190,6 +2905,267 @@ export interface operations {
             };
         };
     };
+    AccountRecoveryController_forgot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountRecoveryController_reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description password changed; all sessions and access tokens revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountRecoveryController_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    AccountRecoveryController_resend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description no-op when already verified */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CredentialsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialDto"][];
+                };
+            };
+        };
+    };
+    CredentialsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCredentialDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialDto"];
+                };
+            };
+        };
+    };
+    CredentialsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CredentialsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCredentialDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialDto"];
+                };
+            };
+        };
+    };
+    CredentialsController_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCredentialResponse"];
+                };
+            };
+        };
+    };
+    VoiceController_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceInfoDto"];
+                };
+            };
+        };
+    };
+    VoiceController_transcribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    audio: string;
+                    language?: string;
+                    /** Format: uuid */
+                    credentialId?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptDto"];
+                };
+            };
+        };
+    };
+    VoiceController_speak: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeakDto"];
+            };
+        };
+        responses: {
+            /** @description audio stream (mp3); header X-Charged-Micro */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ChannelsController_overview: {
         parameters: {
             query?: never;
@@ -2332,113 +3308,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    CredentialsController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CredentialDto"][];
-                };
-            };
-        };
-    };
-    CredentialsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCredentialDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CredentialDto"];
-                };
-            };
-        };
-    };
-    CredentialsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    CredentialsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateCredentialDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CredentialDto"];
-                };
-            };
-        };
-    };
-    CredentialsController_test: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TestCredentialResponse"];
-                };
             };
         };
     };
@@ -2732,6 +3601,25 @@ export interface operations {
             };
         };
     };
+    ReferralsController_mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralInfoDto"];
+                };
+            };
+        };
+    };
     PaymentsController_subscription: {
         parameters: {
             query?: never;
@@ -2957,6 +3845,52 @@ export interface operations {
             };
         };
     };
+    AdminController_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendOrgDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSuspensionDto"];
+                };
+            };
+        };
+    };
+    AdminController_unsuspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSuspensionDto"];
+                };
+            };
+        };
+    };
     AdminController_prices: {
         parameters: {
             query?: never;
@@ -3058,6 +3992,197 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RetriedDto"];
+                };
+            };
+        };
+    };
+    ConnectionsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationDto"][];
+                };
+            };
+        };
+    };
+    ConnectionsController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartConnectionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartConnectionResponse"];
+                };
+            };
+        };
+    };
+    ConnectionsController_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    McpController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerDto"][];
+                };
+            };
+        };
+    };
+    McpController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMcpServerDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerDto"];
+                };
+            };
+        };
+    };
+    McpController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerDto"];
+                };
+            };
+        };
+    };
+    McpController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    McpController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMcpServerDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerDto"];
+                };
+            };
+        };
+    };
+    McpController_refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpServerDto"];
                 };
             };
         };
@@ -3390,6 +4515,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentRunDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTemplateDto"][];
+                };
+            };
+        };
+    };
+    TemplatesController_use: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UseTemplateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UseTemplateResultDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_share: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_unshare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TemplatesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedAgentDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportSharedDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UseTemplateResultDto"];
                 };
             };
         };

@@ -210,3 +210,26 @@ describe('streamTurn (against a local SSE server)', () => {
     expect(() => createApi({ apiUrl: url })).toThrow(/harness login/)
   })
 })
+
+describe('templates helpers + quota errors', () => {
+  it('parses share links and tokens', async () => {
+    const { shareToken } = await import('../src/commands/templates.ts')
+    expect(shareToken('https://app.example.com/t/AbCdEfGhIjKlMnOpQrStUvWx')).toBe(
+      'AbCdEfGhIjKlMnOpQrStUvWx',
+    )
+    expect(shareToken('AbCdEfGhIjKlMnOpQrStUvWx')).toBe('AbCdEfGhIjKlMnOpQrStUvWx')
+    expect(() => shareToken('nope')).toThrow(/share link/)
+  })
+
+  it('maps FREE_QUOTA_EXCEEDED to the payment exit code with a helpful message', () => {
+    const e = CliError.fromResponse(429, {
+      error: {
+        code: 'FREE_QUOTA_EXCEEDED',
+        message: 'x',
+        details: { limit: 30, resetAt: '2026-11-15T17:00:00Z' },
+      },
+    })
+    expect(e.exitCode).toBe(EXIT.payment)
+    expect(e.message).toMatch(/30\/day/)
+  })
+})

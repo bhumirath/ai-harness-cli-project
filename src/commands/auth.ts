@@ -143,6 +143,9 @@ export function registerAuth(program: Command): void {
       console.log(`Org:     ${org?.name ?? me.currentOrgId}${org ? pc.dim(` (${org.role})`) : ''}`)
       console.log(`Plan:    ${me.plan}`)
       console.log(`Credits: ${formatCredits(me.wallet.balanceMicro)}`)
+      if (me.freeQuota.limit > 0) {
+        console.log(`Free AI: ${me.freeQuota.used}/${me.freeQuota.limit} today`)
+      }
       console.log(pc.dim(`API:     ${api.settings.apiUrl}`))
     })
 }

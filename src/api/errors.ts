@@ -27,6 +27,15 @@ export class CliError extends Error {
       message = `${message} — run \`harness login\``
     } else if (status === 402) {
       exitCode = EXIT.payment
+    } else if (code === 'FREE_QUOTA_EXCEEDED') {
+      exitCode = EXIT.payment
+      const details = (body as { error?: { details?: { limit?: number; resetAt?: string } } }).error
+        ?.details
+      if (details?.resetAt) {
+        message = `Daily free messages used up (${details.limit ?? '?'}/day) — resets ${new Date(details.resetAt).toLocaleString()}. Add your own API key or buy credits to continue.`
+      }
+    } else if (code === 'EMAIL_NOT_VERIFIED') {
+      message = `${message} — open the web app and verify your email`
     }
     return new CliError(message, { exitCode, code, status })
   }

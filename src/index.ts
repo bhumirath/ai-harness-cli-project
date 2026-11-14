@@ -4,6 +4,7 @@ import { CliError, EXIT } from './api/errors.ts'
 import { registerAuth } from './commands/auth.ts'
 import { registerChat } from './commands/chat.ts'
 import { registerResources } from './commands/resources.ts'
+import { registerTemplates } from './commands/templates.ts'
 import { VERSION } from './version.ts'
 
 export function buildProgram(): Command {
@@ -19,6 +20,7 @@ export function buildProgram(): Command {
   registerAuth(program)
   registerChat(program)
   registerResources(program)
+  registerTemplates(program)
   program.addHelpText(
     'after',
     `
@@ -26,6 +28,7 @@ Examples:
   $ harness login
   $ harness ask "สรุปข่าว AI วันนี้ 5 ข้อ"
   $ git diff | harness ask "review this diff"
+  $ harness templates use morning-news --schedule
   $ harness chat -a "News bot"
   $ harness schedules add "ทุกวัน 7 โมงเช้า" "สรุปข่าวให้หน่อย" --to line`,
   )

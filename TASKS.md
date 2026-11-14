@@ -43,6 +43,14 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] `approvals ls|approve|reject`, `inbox [--unread] [--read-all]`, `memory ls|add|rm`, `models`,
         `balance`, `usage --days --by`, `tokens ls|revoke`
 
+### CLI-008 · Templates, sharing, invites, free tier
+- Status: DONE (2026-11-14)
+- Description: `harness templates [ls]`, `templates use <id> [--model] [--name] [--schedule]`,
+  `harness share <agent> [--stop]`, `harness import <link|token>`, `harness invite`; default model =
+  the Free model if offered; FREE_QUOTA_EXCEEDED → exit 4 with reset time; whoami shows the free quota.
+- Acceptance criteria:
+  - [x] unit tests (share-link parsing, quota error); `templates` verified live against the dev API
+
 ### CLI-006 · Packaging + release
 
 - Status: TODO
