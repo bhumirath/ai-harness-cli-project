@@ -2,6 +2,8 @@ import { Command, CommanderError } from 'commander'
 import pc from 'picocolors'
 import { CliError, EXIT } from './api/errors.ts'
 import { registerAuth } from './commands/auth.ts'
+import { registerCompletion } from './commands/completion.ts'
+import { registerConversations } from './commands/conversations.ts'
 import { registerChat } from './commands/chat.ts'
 import { registerResources } from './commands/resources.ts'
 import { registerTemplates } from './commands/templates.ts'
@@ -20,7 +22,9 @@ export function buildProgram(): Command {
   registerAuth(program)
   registerChat(program)
   registerResources(program)
+  registerConversations(program)
   registerTemplates(program)
+  registerCompletion(program)
   program.addHelpText(
     'after',
     `

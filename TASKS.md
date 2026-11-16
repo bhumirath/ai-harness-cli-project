@@ -44,6 +44,7 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
         `balance`, `usage --days --by`, `tokens ls|revoke`
 
 ### CLI-008 · Templates, sharing, invites, free tier
+
 - Status: DONE (2026-11-14)
 - Description: `harness templates [ls]`, `templates use <id> [--model] [--name] [--schedule]`,
   `harness share <agent> [--stop]`, `harness import <link|token>`, `harness invite`; default model =
@@ -64,20 +65,23 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Status: TODO
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
+- Progress: conversation history done in CLI-009; shell completion done in CLI-010. Remaining:
+  OS keychain, chat markdown rendering, interactive organization picker. Native zsh/fish/PowerShell
+  validation remains (only Bash is installed on the dev server).
 
 ### CLI-009 · Conversation history (from CLI-007)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Depends on: CLI-002
 - Acceptance criteria:
-  - [ ] `conversations ls` supports title search and cursor pagination; `show <id>` supports older-message pagination.
-  - [ ] Human-readable text/image/tool/error output and unchanged API JSON with `--json`.
-  - [ ] Integration tests cover requests, pagination, authentication and errors.
+  - [x] `conversations ls` supports title search and cursor pagination; `show <id>` supports older-message pagination.
+  - [x] Human-readable text/image/tool/error output and unchanged API JSON with `--json`.
+  - [x] Integration tests cover requests, pagination, authentication and errors.
 
 ### CLI-010 · Shell completion (from CLI-007)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Acceptance criteria:
-  - [ ] `completion bash|zsh|fish|powershell` emits installable scripts without authentication.
-  - [ ] Completion follows command/subcommand options and skips option values; never calls the API.
-  - [ ] Tests cover completion context and generated Bash script execution.
+  - [x] `completion bash|zsh|fish|powershell` emits installable scripts without authentication.
+  - [x] Completion follows command/subcommand options and skips option values; never calls the API.
+  - [x] Tests cover completion context and generated Bash script execution.

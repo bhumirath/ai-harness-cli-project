@@ -26,4 +26,43 @@ Every read command supports `--json`. Scripts/CI: `HARNESS_TOKEN=hk_… harness 
 
 Exit codes: 0 ok · 1 error · 2 usage · 3 not logged in / token invalid · 4 out of credits / plan limit.
 
+## Conversation history
+
+```bash
+harness conversations ls --query "meeting" --limit 20
+harness conversations ls --cursor <nextCursor> --json
+harness conversations show <conversationId>
+harness conversations show <conversationId> --before <firstMessageId> --limit 100 --json
+harness chat -c <conversationId>    # continue an existing conversation
+```
+
+Lists return one page, newest conversation first. Message pages show the latest messages in
+chronological order; `--before` loads older messages. Human output prints pagination hints to stderr.
+`--json` preserves the API response, including `nextCursor` / `hasMore` and full message content.
+Images are shown as `[image]` in human output.
+
+## Shell completion
+
+After installing the CLI (or putting its built executable on PATH), load the script in your shell:
+
+```bash
+# Bash: add to ~/.bashrc
+source <(harness completion bash)
+
+# Zsh: after `autoload -Uz compinit; compinit` in ~/.zshrc
+source <(harness completion zsh)
+
+# Fish: add to ~/.config/fish/config.fish
+harness completion fish | source
+```
+
+```powershell
+# PowerShell 7.3+: add to $PROFILE (preserves empty native arguments)
+harness completion powershell | Out-String | Invoke-Expression
+```
+
+Completion suggests commands, subcommands and flags. It does not complete account data or option
+values, read saved credentials, or contact the API. Bash execution is tested on Linux; the other
+shell scripts need native platform verification.
+
 Development: see `AGENTS.md`.
