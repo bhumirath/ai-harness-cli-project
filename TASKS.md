@@ -54,7 +54,7 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-006 · Packaging + release
 
-- Status: TODO
+- Status: IN_PROGRESS (codex, 2026-11-16) — preparing release locally; registry/repository setup still needs O-10
 - Description: npm org/scope `@ai-harness` (owner, O-10), `pnpm publish` from CI on tag, update
   notice, single-file binaries (Node SEA) for macOS/Windows/Linux, Homebrew/Scoop later.
 - Acceptance criteria:
