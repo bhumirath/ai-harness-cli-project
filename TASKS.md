@@ -66,7 +66,7 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: conversation history done in CLI-009; shell completion done in CLI-010. Remaining:
-  OS keychain, chat markdown rendering, interactive organization picker. Native zsh/fish/PowerShell
+  OS keychain. Chat Markdown done in CLI-012; organization picker done in CLI-011. Native zsh/fish/PowerShell
   validation remains (only Bash is installed on the dev server).
 
 ### CLI-009 · Conversation history (from CLI-007)
@@ -88,16 +88,16 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-011 · Organization selection (from CLI-007)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Acceptance criteria:
-  - [ ] `orgs ls` shows memberships and current selection; `orgs use [id|name]` saves a default.
-  - [ ] Interactive picker, clear errors in scripts, cancellation leaves config unchanged.
-  - [ ] Stale org selection can be repaired; flags/env keep precedence; tests and CLI checks pass.
+  - [x] `orgs ls` shows memberships and current selection; `orgs use [id|name]` saves a default.
+  - [x] Interactive picker, clear errors in scripts, cancellation leaves config unchanged.
+  - [x] Stale org selection can be repaired; flags/env keep precedence; tests and CLI checks pass.
 
 ### CLI-012 · Terminal Markdown (from CLI-007)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Acceptance criteria:
-  - [ ] Opt-in `chat/ask --markdown` styles common Markdown while preserving raw text and JSON.
-  - [ ] Code blocks, headings, lists and links render safely; partial responses survive errors/abort.
-  - [ ] Streaming tests cover chunk boundaries and interleaved tool events.
+  - [x] Opt-in `chat/ask --markdown` styles common Markdown while preserving raw text and JSON.
+  - [x] Code blocks, headings, lists and links render safely; partial responses survive errors/abort.
+  - [x] Streaming tests cover chunk boundaries and interleaved tool events.

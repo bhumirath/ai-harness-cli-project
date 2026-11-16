@@ -7,6 +7,7 @@ import { CliError, EXIT } from '../api/errors.ts'
 import { resolveAgent } from '../agents.ts'
 import { apiFor, globals } from '../context.ts'
 import { formatCredits, printJson } from '../output.ts'
+import { MarkdownStream } from '../markdown.ts'
 import { readStdin } from '../platform.ts'
 
 export interface TurnResult {
@@ -23,7 +24,7 @@ export async function streamTurn(
   api: Api,
   path: string,
   body: unknown,
-  opts: { quiet?: boolean; signal?: AbortSignal } = {},
+  opts: { quiet?: boolean; signal?: AbortSignal; markdown?: boolean } = {},
 ): Promise<TurnResult> {
   const out: TurnResult = {
     text: '',
@@ -36,38 +37,48 @@ export async function streamTurn(
   const write = (s: string) => {
     if (!opts.quiet) process.stdout.write(s)
   }
-  for await (const e of api.stream(path, body, opts.signal)) {
-    const d = e.data as Record<string, unknown>
-    switch (e.event) {
-      case 'delta':
-        out.text += String(d.text ?? '')
-        write(String(d.text ?? ''))
-        break
-      case 'tool_call':
-        write(pc.dim(`\n⚙ ${String(d.name)}…`))
-        break
-      case 'tool_result':
-        write(d.ok ? pc.dim(` ✓${d.summary ? ` ${String(d.summary)}` : ''}\n`) : pc.yellow(' ✗\n'))
-        break
-      case 'approval_required':
-        out.approvals = (d.approvals as TurnResult['approvals']) ?? []
-        break
-      case 'usage':
-        out.chargedMicro += BigInt(String(d.chargedMicro ?? '0'))
-        out.tokensIn += Number(d.tokensIn ?? 0)
-        out.tokensOut += Number(d.tokensOut ?? 0)
-        break
-      case 'done':
-        out.finishReason = String(d.finishReason ?? 'stop')
-        break
-      case 'error':
-        throw new CliError(String(d.message ?? 'The model failed'), {
-          code: String(d.code ?? ''),
-          exitCode: d.code === 'CREDITS_EXHAUSTED' ? EXIT.payment : EXIT.error,
-        })
+  const markdown = opts.markdown && !opts.quiet ? new MarkdownStream(write) : undefined
+  try {
+    for await (const e of api.stream(path, body, opts.signal)) {
+      const d = e.data as Record<string, unknown>
+      switch (e.event) {
+        case 'delta':
+          out.text += String(d.text ?? '')
+          if (markdown) markdown.push(String(d.text ?? ''))
+          else write(String(d.text ?? ''))
+          break
+        case 'tool_call':
+          markdown?.flush()
+          write(pc.dim(`\n⚙ ${String(d.name)}…`))
+          break
+        case 'tool_result':
+          markdown?.flush()
+          write(
+            d.ok ? pc.dim(` ✓${d.summary ? ` ${String(d.summary)}` : ''}\n`) : pc.yellow(' ✗\n'),
+          )
+          break
+        case 'approval_required':
+          out.approvals = (d.approvals as TurnResult['approvals']) ?? []
+          break
+        case 'usage':
+          out.chargedMicro += BigInt(String(d.chargedMicro ?? '0'))
+          out.tokensIn += Number(d.tokensIn ?? 0)
+          out.tokensOut += Number(d.tokensOut ?? 0)
+          break
+        case 'done':
+          out.finishReason = String(d.finishReason ?? 'stop')
+          break
+        case 'error':
+          throw new CliError(String(d.message ?? 'The model failed'), {
+            code: String(d.code ?? ''),
+            exitCode: d.code === 'CREDITS_EXHAUSTED' ? EXIT.payment : EXIT.error,
+          })
+      }
     }
+  } finally {
+    markdown?.flush()
+    if (out.text && !out.text.endsWith('\n')) write('\n')
   }
-  if (out.text && !out.text.endsWith('\n')) write('\n')
   return out
 }
 
@@ -109,7 +120,7 @@ async function converse(
   api: Api,
   conversationId: string,
   text: string,
-  opts: { quiet?: boolean; signal?: AbortSignal; ask?: Ask },
+  opts: { quiet?: boolean; signal?: AbortSignal; ask?: Ask; markdown?: boolean },
 ): Promise<TurnResult> {
   let r = await streamTurn(
     api,
@@ -153,8 +164,13 @@ export function registerChat(program: Command): void {
     .argument('[question...]', 'your question')
     .option('-a, --agent <agent>', 'agent id or name (default: first agent)')
     .option('-c, --conversation <id>', 'continue an existing conversation')
+    .option('--markdown', 'format Markdown as lines arrive (buffers the current line)')
     .action(
-      async (words: string[], opts: { agent?: string; conversation?: string }, cmd: Command) => {
+      async (
+        words: string[],
+        opts: { agent?: string; conversation?: string; markdown?: boolean },
+        cmd: Command,
+      ) => {
         const json = globals(cmd).json
         const stdin = (await readStdin()).trim()
         const question = [words.join(' ').trim(), stdin].filter(Boolean).join('\n\n')
@@ -166,7 +182,10 @@ export function registerChat(program: Command): void {
         const conversationId =
           opts.conversation ??
           (await newConversation(api, (await resolveAgent(api, opts.agent)).id))
-        const r = await converse(api, conversationId, question, { quiet: json })
+        const r = await converse(api, conversationId, question, {
+          quiet: json,
+          markdown: opts.markdown,
+        })
         if (json) {
           printJson({
             conversationId,
@@ -189,67 +208,71 @@ export function registerChat(program: Command): void {
     .description('Interactive chat with an agent (/new, /exit)')
     .option('-a, --agent <agent>', 'agent id or name (default: first agent)')
     .option('-c, --conversation <id>', 'continue an existing conversation')
-    .action(async (opts: { agent?: string; conversation?: string }, cmd: Command) => {
-      if (!process.stdin.isTTY)
-        throw new CliError('`chat` needs a terminal — use `harness ask` in scripts.', {
-          exitCode: EXIT.usage,
-        })
-      const api = apiFor(cmd)
-      const agent = await resolveAgent(api, opts.agent)
-      let conversationId = opts.conversation ?? (await newConversation(api, agent.id))
-      console.log(
-        pc.dim(
-          `Chatting with ${pc.bold(agent.name)} · /new for a new conversation · /exit to quit`,
-        ),
-      )
+    .option('--markdown', 'format Markdown as lines arrive (buffers the current line)')
+    .action(
+      async (opts: { agent?: string; conversation?: string; markdown?: boolean }, cmd: Command) => {
+        if (!process.stdin.isTTY)
+          throw new CliError('`chat` needs a terminal — use `harness ask` in scripts.', {
+            exitCode: EXIT.usage,
+          })
+        const api = apiFor(cmd)
+        const agent = await resolveAgent(api, opts.agent)
+        let conversationId = opts.conversation ?? (await newConversation(api, agent.id))
+        console.log(
+          pc.dim(
+            `Chatting with ${pc.bold(agent.name)} · /new for a new conversation · /exit to quit`,
+          ),
+        )
 
-      const rl = createInterface({ input: process.stdin, output: process.stdout })
-      let current: AbortController | null = null
-      rl.on('SIGINT', () => {
-        if (current) {
-          current.abort()
-          process.stdout.write(pc.dim('\n(stopped)\n'))
-        } else {
+        const rl = createInterface({ input: process.stdin, output: process.stdout })
+        let current: AbortController | null = null
+        rl.on('SIGINT', () => {
+          if (current) {
+            current.abort()
+            process.stdout.write(pc.dim('\n(stopped)\n'))
+          } else {
+            rl.close()
+          }
+        })
+        try {
+          for (;;) {
+            let line: string
+            try {
+              line = (await rl.question(pc.cyan('› '))).trim()
+            } catch {
+              break // closed
+            }
+            if (!line) continue
+            if (line === '/exit' || line === '/quit') break
+            if (line === '/new') {
+              conversationId = await newConversation(api, agent.id)
+              console.log(pc.dim('New conversation.'))
+              continue
+            }
+            if (line === '/help') {
+              console.log(pc.dim('/new  new conversation · /exit  quit · Ctrl+C stops a reply'))
+              continue
+            }
+            current = new AbortController()
+            try {
+              const r = await converse(api, conversationId, line, {
+                signal: current.signal,
+                markdown: opts.markdown,
+                ask: (q) => rl.question(pc.yellow(q)),
+              })
+              if (r.chargedMicro > 0n)
+                console.log(pc.dim(`  ${formatCredits(r.chargedMicro, 4)} credits`))
+            } catch (err) {
+              if (current.signal.aborted) continue
+              if (err instanceof CliError && err.exitCode !== EXIT.error) throw err
+              console.error(pc.red(err instanceof Error ? err.message : String(err)))
+            } finally {
+              current = null
+            }
+          }
+        } finally {
           rl.close()
         }
-      })
-      try {
-        for (;;) {
-          let line: string
-          try {
-            line = (await rl.question(pc.cyan('› '))).trim()
-          } catch {
-            break // closed
-          }
-          if (!line) continue
-          if (line === '/exit' || line === '/quit') break
-          if (line === '/new') {
-            conversationId = await newConversation(api, agent.id)
-            console.log(pc.dim('New conversation.'))
-            continue
-          }
-          if (line === '/help') {
-            console.log(pc.dim('/new  new conversation · /exit  quit · Ctrl+C stops a reply'))
-            continue
-          }
-          current = new AbortController()
-          try {
-            const r = await converse(api, conversationId, line, {
-              signal: current.signal,
-              ask: (q) => rl.question(pc.yellow(q)),
-            })
-            if (r.chargedMicro > 0n)
-              console.log(pc.dim(`  ${formatCredits(r.chargedMicro, 4)} credits`))
-          } catch (err) {
-            if (current.signal.aborted) continue
-            if (err instanceof CliError && err.exitCode !== EXIT.error) throw err
-            console.error(pc.red(err instanceof Error ? err.message : String(err)))
-          } finally {
-            current = null
-          }
-        }
-      } finally {
-        rl.close()
-      }
-    })
+      },
+    )
 }

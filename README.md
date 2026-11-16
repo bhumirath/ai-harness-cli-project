@@ -26,6 +26,31 @@ Every read command supports `--json`. Scripts/CI: `HARNESS_TOKEN=hk_… harness 
 
 Exit codes: 0 ok · 1 error · 2 usage · 3 not logged in / token invalid · 4 out of credits / plan limit.
 
+## Organization selection
+
+```bash
+harness orgs ls --json
+harness orgs use                 # interactive picker
+harness orgs use <id-or-name>    # scripts: id or unique exact name
+```
+
+The selection is saved locally and clears the default agent from the previous organization.
+`--org` and `HARNESS_ORG` still override the saved default. Listing/selection can repair a stale
+saved organization even after you lose membership.
+
+## Terminal Markdown
+
+```bash
+harness chat --markdown
+harness ask "Write a short guide" --markdown
+```
+
+Opt in to formatting headings, bold text, inline/fenced code, bullet lists, quotes and links.
+The current line is buffered until a newline, a tool event or the end of the reply; very long lines
+are flushed as plain text to keep output moving. This is a small renderer, not full CommonMark.
+JSON output retains the original Markdown and never includes terminal formatting. Without this
+flag, text streams directly as before.
+
 ## Conversation history
 
 ```bash

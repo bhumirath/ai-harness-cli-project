@@ -5,6 +5,7 @@ import { registerAuth } from './commands/auth.ts'
 import { registerCompletion } from './commands/completion.ts'
 import { registerConversations } from './commands/conversations.ts'
 import { registerChat } from './commands/chat.ts'
+import { registerOrgs } from './commands/orgs.ts'
 import { registerResources } from './commands/resources.ts'
 import { registerTemplates } from './commands/templates.ts'
 import { VERSION } from './version.ts'
@@ -22,6 +23,7 @@ export function buildProgram(): Command {
   registerAuth(program)
   registerChat(program)
   registerResources(program)
+  registerOrgs(program)
   registerConversations(program)
   registerTemplates(program)
   registerCompletion(program)
