@@ -115,3 +115,18 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] Native keychain on macOS/Windows, persistent Secret Service on Linux, no silent fallback.
   - [x] Logout removes the stored credential; failures/cancellation do not destroy the previous login.
   - [x] Tests cover precedence, migration, cleanup and unavailable stores without logging tokens.
+
+### CLI-014 · Update notice (from CLI-006)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] Explicit `update-check` reports newer npm latest versions, with clean JSON mode.
+  - [ ] Fixed registry endpoint, timeout, no credentials/config reads, helpful unpublished/network errors.
+
+### CLI-015 · Standalone executable (from CLI-006)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] Build Node 22 SEA from bundled CLI on native Linux/macOS/Windows runners.
+  - [ ] Native Linux executable smoke-tested without node_modules; keychain unavailable errors stay safe.
+  - [ ] CI builds/smoke-tests each native platform and publishes downloadable artifacts.
