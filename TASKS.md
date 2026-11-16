@@ -101,3 +101,12 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] Opt-in `chat/ask --markdown` styles common Markdown while preserving raw text and JSON.
   - [x] Code blocks, headings, lists and links render safely; partial responses survive errors/abort.
   - [x] Streaming tests cover chunk boundaries and interleaved tool events.
+
+### CLI-013 · OS credential storage (from CLI-007)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] Opt-in keychain login and migration from/to file storage; no token in JSON config in keychain mode.
+  - [ ] Native keychain on macOS/Windows, persistent Secret Service on Linux, no silent fallback.
+  - [ ] Logout removes the stored credential; failures/cancellation do not destroy the previous login.
+  - [ ] Tests cover precedence, migration, cleanup and unavailable stores without logging tokens.
