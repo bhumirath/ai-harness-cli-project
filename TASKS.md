@@ -64,3 +64,20 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Status: TODO
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
+
+### CLI-009 · Conversation history (from CLI-007)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Depends on: CLI-002
+- Acceptance criteria:
+  - [ ] `conversations ls` supports title search and cursor pagination; `show <id>` supports older-message pagination.
+  - [ ] Human-readable text/image/tool/error output and unchanged API JSON with `--json`.
+  - [ ] Integration tests cover requests, pagination, authentication and errors.
+
+### CLI-010 · Shell completion (from CLI-007)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] `completion bash|zsh|fish|powershell` emits installable scripts without authentication.
+  - [ ] Completion follows command/subcommand options and skips option values; never calls the API.
+  - [ ] Tests cover completion context and generated Bash script execution.
