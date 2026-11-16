@@ -24,7 +24,7 @@ Use `HARNESS_CONFIG=/tmp/x/config.json` to keep test logins away from your real 
 
 - Thin client: no business logic; every call goes through the generated OpenAPI types
   (`src/api/schema.d.ts` — never hand-write API types; regenerate after backend changes).
-- The token is a secret: only in the config file (mode 0600) or `HARNESS_TOKEN`; never print or log it.
+- The token is a secret: only in the config file (mode 0600), the opt-in OS keychain, or `HARNESS_TOKEN`; never print or log it. Keychain mode must not silently fall back to plaintext storage.
 - Money: micro-credit strings → `formatCredits` (BigInt). No floats.
 - `--json` on every read command must print one valid JSON document to stdout and nothing else;
   progress/warnings go to stderr.

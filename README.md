@@ -26,6 +26,29 @@ Every read command supports `--json`. Scripts/CI: `HARNESS_TOKEN=hk_… harness 
 
 Exit codes: 0 ok · 1 error · 2 usage · 3 not logged in / token invalid · 4 out of credits / plan limit.
 
+## Token storage
+
+The default stores a token in the config file with mode `0600`. To use the OS credential store:
+
+```bash
+harness login --keychain
+harness credentials storage keychain    # migrate an existing saved login, no API call
+harness credentials storage file        # explicitly return to file storage
+harness login --no-keychain             # new file login, even if the old keychain is unavailable
+```
+
+Keychain mode stores only an opaque entry reference in JSON. It uses macOS Keychain, Windows
+Credential Manager, or a persistent Secret Service on Linux (for example GNOME Keyring/KWallet).
+Linux needs an unlocked Secret Service and a session D-Bus; headless servers can use file storage
+or `HARNESS_TOKEN`. A missing native binding, locked store, or missing entry produces an error and
+never falls back to a plaintext file automatically. Flag/environment tokens override keychain lookup.
+The native binding is optional so file storage still works on unsupported platforms.
+
+Logout revokes the saved login against its saved API endpoint before removing the local credential.
+A revocation/network failure preserves the login so you can retry. Config updates use atomic
+replacement. Keychain behavior has unit/integration coverage, including a real unavailable-store
+check on Linux; successful native storage still needs validation on desktop macOS/Windows/Linux.
+
 ## Organization selection
 
 ```bash

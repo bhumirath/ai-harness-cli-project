@@ -1,11 +1,15 @@
-import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { readKeychainToken } from './keychain.ts'
 
 /** What `harness login` stores. The token is a secret: file mode 0600, never printed. */
 export interface StoredConfig {
   apiUrl?: string
   token?: string
+  /** Opaque account reference in the OS keychain; no secret in this file. */
+  keychainRef?: string
   /** id of the token (for `logout` → revoke) */
   tokenId?: string
   orgId?: string
@@ -35,7 +39,13 @@ export function loadConfig(path = configPath()): StoredConfig {
 
 export function saveConfig(cfg: StoredConfig, path = configPath()): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
-  writeFileSync(path, `${JSON.stringify(cfg, null, 2)}\n`, { mode: 0o600 })
+  const temporary = `${path}.${randomUUID()}.tmp`
+  try {
+    writeFileSync(temporary, `${JSON.stringify(cfg, null, 2)}\n`, { mode: 0o600, flag: 'wx' })
+    renameSync(temporary, path)
+  } finally {
+    rmSync(temporary, { force: true })
+  }
   try {
     chmodSync(path, 0o600) // also tighten a pre-existing file
   } catch {
@@ -66,7 +76,10 @@ export function resolveSettings(
   )
   return {
     apiUrl,
-    token: flags.token || env.HARNESS_TOKEN || stored.token,
+    token:
+      flags.token ||
+      env.HARNESS_TOKEN ||
+      (stored.keychainRef ? readKeychainToken(stored.keychainRef) : stored.token),
     orgId: flags.org || env.HARNESS_ORG || stored.orgId,
     agentId: stored.agentId,
   }

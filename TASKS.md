@@ -66,7 +66,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: conversation history done in CLI-009; shell completion done in CLI-010. Remaining:
-  OS keychain. Chat Markdown done in CLI-012; organization picker done in CLI-011. Native zsh/fish/PowerShell
+  OS keychain implemented in CLI-013. Chat Markdown done in CLI-012; organization picker done in CLI-011.
+  Native keychain success validation on desktop platforms remains; Linux unavailable-store check passes. Native zsh/fish/PowerShell
   validation remains (only Bash is installed on the dev server).
 
 ### CLI-009 · Conversation history (from CLI-007)
@@ -104,9 +105,9 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-013 · OS credential storage (from CLI-007)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Acceptance criteria:
-  - [ ] Opt-in keychain login and migration from/to file storage; no token in JSON config in keychain mode.
-  - [ ] Native keychain on macOS/Windows, persistent Secret Service on Linux, no silent fallback.
-  - [ ] Logout removes the stored credential; failures/cancellation do not destroy the previous login.
-  - [ ] Tests cover precedence, migration, cleanup and unavailable stores without logging tokens.
+  - [x] Opt-in keychain login and migration from/to file storage; no token in JSON config in keychain mode.
+  - [x] Native keychain on macOS/Windows, persistent Secret Service on Linux, no silent fallback.
+  - [x] Logout removes the stored credential; failures/cancellation do not destroy the previous login.
+  - [x] Tests cover precedence, migration, cleanup and unavailable stores without logging tokens.

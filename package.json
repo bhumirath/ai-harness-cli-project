@@ -38,5 +38,8 @@
     "typescript": "~5.9.3",
     "vitest": "^5.1.0"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "optionalDependencies": {
+    "@napi-rs/keyring": "2.1.2"
+  }
 }
