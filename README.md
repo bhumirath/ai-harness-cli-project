@@ -113,4 +113,27 @@ Completion suggests commands, subcommands and flags. It does not complete accoun
 values, read saved credentials, or contact the API. Bash execution is tested on Linux; the other
 shell scripts need native platform verification.
 
+## Release preparation (CLI-006)
+
+The package has been packed, installed in a clean temporary project, and smoke-tested locally:
+
+```bash
+pnpm verify:package
+```
+
+This also checks that file-storage commands work without optional native keychain dependencies.
+`pnpm build` checks the CLI version against `package.json`; `pnpm version patch` updates both files.
+
+Before the first registry release, the owner must create the intended GitHub repository
+`bhumirath/ai-harness-cli-project`, ensure publishing access to the npm scope `@ai-harness`, and
+bootstrap the package if npm requires an initial authenticated publish. Configure npm Trusted
+Publishing for that repository and `.github/workflows/release.yml` (Node 22, npm 11, OIDC).
+The package's `repository.url` must match the actual repository.
+
+Once those are configured, pushing a `v<package-version>` tag runs checks, installs and verifies
+the tarball, and publishes that same archive. Stable versions use `latest`; prereleases use `next`.
+Provenance is generated automatically where npm supports it (public source repositories).
+No registry publish or release tag has been created in this session. Update notices and standalone
+binaries remain part of CLI-006; native keychain dependencies need to be considered for binaries.
+
 Development: see `AGENTS.md`.

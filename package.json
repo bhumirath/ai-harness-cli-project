@@ -1,9 +1,8 @@
 {
   "name": "@ai-harness/cli",
   "version": "0.1.0",
-  "description": "Command-line client for AI Harness — chat with your always-on agents from the terminal",
+  "description": "Command-line client for AI Harness \u2014 chat with your always-on agents from the terminal",
   "license": "UNLICENSED",
-  "private": true,
   "type": "module",
   "bin": {
     "harness": "dist/bin.js"
@@ -15,14 +14,17 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/chmod-bin.mjs",
+    "build": "node scripts/sync-version.mjs --check && tsc -p tsconfig.build.json && node scripts/chmod-bin.mjs",
     "dev": "node --experimental-strip-types src/index.ts",
     "start": "node dist/bin.js",
     "lint": "oxlint --deny-warnings src test && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "gen:api": "node scripts/gen-api.mjs"
+    "gen:api": "node scripts/gen-api.mjs",
+    "version": "node scripts/sync-version.mjs && git add src/version.ts",
+    "prepack": "pnpm build",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",
@@ -41,5 +43,12 @@
   "packageManager": "pnpm@9.15.9",
   "optionalDependencies": {
     "@napi-rs/keyring": "2.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bhumirath/ai-harness-cli-project.git"
   }
 }

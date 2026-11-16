@@ -59,16 +59,20 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   notice, single-file binaries (Node SEA) for macOS/Windows/Linux, Homebrew/Scoop later.
 - Acceptance criteria:
   - [ ] `npx @ai-harness/cli --version` works from the registry
+- Progress: local pack/install smoke check passes without native optional dependencies; version sync,
+  prepack build, CI package checks and tag-triggered OIDC release workflow ready. Nothing published.
+  Needs O-10 (GitHub repository + npm publishing access/bootstrap/trusted publisher).
+  Remaining implementation: update notice and standalone binaries.
 
 ### CLI-007 · Nice to have
 
-- Status: TODO
+- Status: IN_PROGRESS (codex, 2026-11-16) — features implemented; native platform validation pending
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
-- Progress: conversation history done in CLI-009; shell completion done in CLI-010. Remaining:
-  OS keychain implemented in CLI-013. Chat Markdown done in CLI-012; organization picker done in CLI-011.
-  Native keychain success validation on desktop platforms remains; Linux unavailable-store check passes. Native zsh/fish/PowerShell
-  validation remains (only Bash is installed on the dev server).
+- Progress: implemented history (CLI-009), completion (CLI-010), org picker (CLI-011), Markdown
+  (CLI-012) and keychain (CLI-013). Remaining validation: successful native keychain storage on
+  desktop macOS/Windows/Linux and native zsh/fish/PowerShell completion. Linux unavailable-store
+  behavior and Bash execution are tested.
 
 ### CLI-009 · Conversation history (from CLI-007)
 

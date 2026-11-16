@@ -1,0 +1,55 @@
+name: Release CLI
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/sync-version.mjs --check --tag
+      - run: pnpm lint && pnpm typecheck && pnpm test
+      - run: pnpm verify:package --output-dir release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-package
+          path: release/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global npm@11
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-package
+          path: release
+      - name: Publish the verified archive
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) dist_tag=next ;;
+            *) dist_tag=latest ;;
+          esac
+          npm publish release/*.tgz --access public --tag "$dist_tag"
