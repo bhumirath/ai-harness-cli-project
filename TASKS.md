@@ -85,3 +85,19 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] `completion bash|zsh|fish|powershell` emits installable scripts without authentication.
   - [x] Completion follows command/subcommand options and skips option values; never calls the API.
   - [x] Tests cover completion context and generated Bash script execution.
+
+### CLI-011 · Organization selection (from CLI-007)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] `orgs ls` shows memberships and current selection; `orgs use [id|name]` saves a default.
+  - [ ] Interactive picker, clear errors in scripts, cancellation leaves config unchanged.
+  - [ ] Stale org selection can be repaired; flags/env keep precedence; tests and CLI checks pass.
+
+### CLI-012 · Terminal Markdown (from CLI-007)
+
+- Status: IN_PROGRESS (codex, 2026-11-16)
+- Acceptance criteria:
+  - [ ] Opt-in `chat/ask --markdown` styles common Markdown while preserving raw text and JSON.
+  - [ ] Code blocks, headings, lists and links render safely; partial responses survive errors/abort.
+  - [ ] Streaming tests cover chunk boundaries and interleaved tool events.
