@@ -1,7 +1,7 @@
 {
   "name": "@ai-harness/cli",
   "version": "0.1.0",
-  "description": "Command-line client for AI Harness \u2014 chat with your always-on agents from the terminal",
+  "description": "Command-line client for AI Harness — chat with your always-on agents from the terminal",
   "license": "UNLICENSED",
   "type": "module",
   "bin": {
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "node scripts/sync-version.mjs --check && tsc -p tsconfig.build.json && node scripts/chmod-bin.mjs",
-    "dev": "node --experimental-strip-types src/index.ts",
+    "dev": "node --experimental-strip-types src/bin.ts",
     "start": "node dist/bin.js",
     "lint": "oxlint --deny-warnings src test && prettier --check .",
     "format": "prettier --write .",
@@ -24,18 +24,23 @@
     "gen:api": "node scripts/gen-api.mjs",
     "version": "node scripts/sync-version.mjs && git add src/version.ts",
     "prepack": "pnpm build",
-    "verify:package": "node scripts/verify-package.mjs"
+    "verify:package": "node scripts/verify-package.mjs",
+    "build:sea": "node scripts/build-sea.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",
     "commander": "^15.1.0",
     "openapi-fetch": "^0.17.0",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "semver": "^7.8.6"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
+    "@types/semver": "^7.8.0",
+    "esbuild": "^0.28.2",
     "openapi-typescript": "^7.13.0",
     "oxlint": "^1.93.0",
+    "postject": "1.0.0-alpha.6",
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "vitest": "^5.1.0"

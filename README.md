@@ -133,7 +133,33 @@ The package's `repository.url` must match the actual repository.
 Once those are configured, pushing a `v<package-version>` tag runs checks, installs and verifies
 the tarball, and publishes that same archive. Stable versions use `latest`; prereleases use `next`.
 Provenance is generated automatically where npm supports it (public source repositories).
-No registry publish or release tag has been created in this session. Update notices and standalone
-binaries remain part of CLI-006; native keychain dependencies need to be considered for binaries.
+No registry publish or release tag has been created in this session.
+
+### Update checks
+
+```bash
+harness update-check
+harness update-check --json
+```
+
+This explicitly checks the npm `latest` tag with a five-second timeout and shows an upgrade notice.
+It needs no login and sends no token; ordinary commands never make update-check requests.
+
+### Standalone binaries
+
+```bash
+pnpm build:sea
+```
+
+Builds for the current host with Node 22 SEA, bundles JavaScript dependencies, includes dependency
+licenses and a SHA-256 checksum, then smoke-tests a copy in an empty directory with no Node on PATH.
+The smoke check covers CLI help/version/completion, local credentials, an authenticated HTTP request,
+and safe failure when native keychain addons are absent.
+
+Standalone binaries support file/env token storage. Use the npm distribution for native OS keychain
+support. The binary workflow (`binaries.yml`, tags or manual dispatch) builds native Linux/macOS/Windows
+artifacts. Linux x64 has been built and tested locally; macOS/Windows CI runs are still pending.
+macOS builds receive an ad-hoc signature; Windows builds are unsigned. Signing/notarization with
+owner certificates is not configured.
 
 Development: see `AGENTS.md`.

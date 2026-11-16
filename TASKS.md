@@ -62,7 +62,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Progress: local pack/install smoke check passes without native optional dependencies; version sync,
   prepack build, CI package checks and tag-triggered OIDC release workflow ready. Nothing published.
   Needs O-10 (GitHub repository + npm publishing access/bootstrap/trusted publisher).
-  Remaining implementation: update notice and standalone binaries.
+  Update notice implemented in CLI-014. Linux SEA built/tested in CLI-015; macOS/Windows
+  native workflow execution and registry publication remain pending.
 
 ### CLI-007 · Nice to have
 
@@ -118,15 +119,19 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-014 · Update notice (from CLI-006)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-16)
 - Acceptance criteria:
-  - [ ] Explicit `update-check` reports newer npm latest versions, with clean JSON mode.
-  - [ ] Fixed registry endpoint, timeout, no credentials/config reads, helpful unpublished/network errors.
+  - [x] Explicit `update-check` reports newer npm latest versions, with clean JSON mode.
+  - [x] Fixed registry endpoint, timeout, no credentials/config reads, helpful unpublished/network errors.
 
 ### CLI-015 · Standalone executable (from CLI-006)
 
 - Status: IN_PROGRESS (codex, 2026-11-16)
 - Acceptance criteria:
-  - [ ] Build Node 22 SEA from bundled CLI on native Linux/macOS/Windows runners.
-  - [ ] Native Linux executable smoke-tested without node_modules; keychain unavailable errors stay safe.
+  - [x] Build Node 22 SEA from bundled CLI on native Linux/macOS/Windows runners.
+  - [x] Native Linux executable smoke-tested without node_modules; keychain unavailable errors stay safe.
   - [ ] CI builds/smoke-tests each native platform and publishes downloadable artifacts.
+
+- CLI-015 progress: Linux x64 binary built and smoke-tested with no node_modules or Node on PATH,
+  including authenticated HTTP and credential persistence. Native CI workflow + license/checksum
+  artifacts configured; macOS/Windows execution pending a Git remote and Actions run.

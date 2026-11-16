@@ -7,6 +7,7 @@ import { registerConversations } from './commands/conversations.ts'
 import { registerChat } from './commands/chat.ts'
 import { registerOrgs } from './commands/orgs.ts'
 import { registerResources } from './commands/resources.ts'
+import { registerUpdate } from './commands/update.ts'
 import { registerTemplates } from './commands/templates.ts'
 import { VERSION } from './version.ts'
 
@@ -26,6 +27,7 @@ export function buildProgram(): Command {
   registerOrgs(program)
   registerConversations(program)
   registerTemplates(program)
+  registerUpdate(program)
   registerCompletion(program)
   program.addHelpText(
     'after',

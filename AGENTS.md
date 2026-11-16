@@ -12,8 +12,8 @@ commander · @clack/prompts · openapi-fetch · picocolors · Vitest · oxlint +
 
 ```bash
 pnpm install
-pnpm dev -- --help                 # run from source (node --experimental-strip-types)
-HARNESS_API_URL=http://localhost:13000 pnpm dev -- login   # against the compose stack
+pnpm dev --help                 # run from source (node --experimental-strip-types)
+HARNESS_API_URL=http://localhost:13000 pnpm dev login   # against the compose stack
 API_URL=http://localhost:13000 pnpm gen:api                 # regenerate src/api/schema.d.ts
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
