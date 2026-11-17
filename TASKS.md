@@ -61,7 +61,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [ ] `npx @ai-harness/cli --version` works from the registry
 - Progress: local pack/install smoke check passes without native optional dependencies; version sync,
   prepack build, CI package checks and tag-triggered OIDC release workflow ready. Nothing published.
-  Needs O-10 (GitHub repository + npm publishing access/bootstrap/trusted publisher).
+  Owner created the GitHub repository on 2026-11-17; origin is configured. Needs GitHub
+  authentication plus npm publishing access/bootstrap/trusted publisher (O-10).
   Update notice implemented in CLI-014. Linux SEA built/tested in CLI-015; macOS/Windows
   native workflow execution and registry publication remain pending.
 
@@ -72,8 +73,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: implemented history (CLI-009), completion (CLI-010), org picker (CLI-011), Markdown
   (CLI-012) and keychain (CLI-013). Remaining validation: successful native keychain storage on
-  desktop macOS/Windows/Linux and native zsh/fish/PowerShell completion. Linux unavailable-store
-  behavior and Bash execution are tested.
+  macOS/Windows and PowerShell completion. Linux Secret Service write/read/migration/logout and
+  Bash/Zsh/Fish adapter execution pass in the isolated native test environment (CLI-016).
 
 ### CLI-009 · Conversation history (from CLI-007)
 
@@ -138,9 +139,9 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-016 · Native Linux completion and keychain validation
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Depends on: CLI-010, CLI-013
 - Acceptance criteria:
-  - [ ] Repeatable isolated environment exercises Bash/Zsh/Fish completion in their own shells.
-  - [ ] Real Linux Secret Service write/read/migration/logout succeeds without logging tokens.
-  - [ ] Regressions found by native checks are fixed, with checks runnable locally and in CI.
+  - [x] Repeatable isolated environment exercises Bash/Zsh/Fish completion in their own shells.
+  - [x] Real Linux Secret Service write/read/migration/logout succeeds without logging tokens.
+  - [x] Regressions found by native checks are fixed, with checks runnable locally and in CI.

@@ -25,7 +25,8 @@
     "version": "node scripts/sync-version.mjs && git add src/version.ts",
     "prepack": "pnpm build",
     "verify:package": "node scripts/verify-package.mjs",
-    "build:sea": "node scripts/build-sea.mjs"
+    "build:sea": "node scripts/build-sea.mjs",
+    "test:native:linux": "pnpm build && node scripts/test-native-linux.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",

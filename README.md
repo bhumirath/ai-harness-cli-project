@@ -46,8 +46,8 @@ The native binding is optional so file storage still works on unsupported platfo
 
 Logout revokes the saved login against its saved API endpoint before removing the local credential.
 A revocation/network failure preserves the login so you can retry. Config updates use atomic
-replacement. Keychain behavior has unit/integration coverage, including a real unavailable-store
-check on Linux; successful native storage still needs validation on desktop macOS/Windows/Linux.
+replacement. Keychain behavior has unit/integration coverage, including real write/read/migration/logout in an isolated Linux Secret Service and an
+unavailable-store check. Native macOS/Windows keychain validation is still pending.
 
 ## Organization selection
 
@@ -110,8 +110,9 @@ harness completion powershell | Out-String | Invoke-Expression
 ```
 
 Completion suggests commands, subcommands and flags. It does not complete account data or option
-values, read saved credentials, or contact the API. Bash execution is tested on Linux; the other
-shell scripts need native platform verification.
+values, read saved credentials, or contact the API. Bash/Zsh/Fish adapter execution is tested on Linux; Fish uses its completion engine and Zsh
+tests token handling with a compadd stub (interactive ZLE remains untested). PowerShell still
+needs native verification.
 
 ## Release preparation (CLI-006)
 
@@ -163,3 +164,15 @@ macOS builds receive an ad-hoc signature; Windows builds are unsigned. Signing/n
 owner certificates is not configured.
 
 Development: see `AGENTS.md`.
+
+## Native Linux verification
+
+```bash
+pnpm test:native:linux
+```
+
+Requires Docker on Linux. The isolated container installs Bash/Zsh/Fish, D-Bus and GNOME Keyring;
+mounts only the built CLI, dependencies, package metadata and native tests as read-only; and uses
+a disposable home/config/keyring. It never reads or changes the host desktop keyring. Tests cover
+command prefixes, empty completion words, global option values and real keychain migration/logout.
+The native-linux CI job runs the same check.
