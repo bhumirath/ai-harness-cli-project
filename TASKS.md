@@ -135,3 +135,12 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - CLI-015 progress: Linux x64 binary built and smoke-tested with no node_modules or Node on PATH,
   including authenticated HTTP and credential persistence. Native CI workflow + license/checksum
   artifacts configured; macOS/Windows execution pending a Git remote and Actions run.
+
+### CLI-016 · Native Linux completion and keychain validation
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Depends on: CLI-010, CLI-013
+- Acceptance criteria:
+  - [ ] Repeatable isolated environment exercises Bash/Zsh/Fish completion in their own shells.
+  - [ ] Real Linux Secret Service write/read/migration/logout succeeds without logging tokens.
+  - [ ] Regressions found by native checks are fixed, with checks runnable locally and in CI.
