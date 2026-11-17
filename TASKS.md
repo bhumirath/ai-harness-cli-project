@@ -153,3 +153,11 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] Completion includes built-in help and default `ls` options without typing `ls`.
   - [x] Required option values are skipped and sibling command options do not leak.
   - [x] Unit and native Bash/Zsh/Fish checks cover the repaired contexts.
+
+### CLI-018 · PowerShell completion validation and argument transport
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Acceptance criteria:
+  - [ ] Test generated script through the real PowerShell completion engine.
+  - [ ] Quoted words and trailing empty arguments survive native/cmd-shim transport.
+  - [ ] Regression coverage and repeatable Docker/Windows CI smoke checks.
