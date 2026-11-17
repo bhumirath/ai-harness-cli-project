@@ -192,7 +192,7 @@ describe('Markdown streaming', () => {
     expect(result.length).toBe(8192)
     renderer.push('tail\n# Heading\n')
     renderer.flush()
-    expect(result).toBe(`${'a'.repeat(8192)}tail\nHeading\n`)
+    expect(stripVTControlCharacters(result)).toBe(`${'a'.repeat(8192)}tail\nHeading\n`)
   })
   function apiWith(events: { event: string; data: unknown }[], failure?: Error): Api {
     const api = createApi({ apiUrl: 'http://unused', token: 'hk_test' })
