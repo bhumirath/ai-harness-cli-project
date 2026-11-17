@@ -145,3 +145,11 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   - [x] Repeatable isolated environment exercises Bash/Zsh/Fish completion in their own shells.
   - [x] Real Linux Secret Service write/read/migration/logout succeeds without logging tokens.
   - [x] Regressions found by native checks are fixed, with checks runnable locally and in CI.
+
+### CLI-017 · Complete help and implicit default-command options
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Acceptance criteria:
+  - [ ] Completion includes built-in help and default `ls` options without typing `ls`.
+  - [ ] Required option values are skipped and sibling command options do not leak.
+  - [ ] Unit and native Bash/Zsh/Fish checks cover the repaired contexts.
