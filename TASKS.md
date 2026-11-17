@@ -165,3 +165,55 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Progress: fixed quoted command/current words and added encoded argument transport. PowerShell
   7.4 on Linux passes quoted, empty and Thai words in Legacy/Standard/Windows argument modes.
   Windows shim test is configured in CI but still needs GitHub authentication to run.
+
+## MC2 — Local coding agent (D-012)
+
+Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
+
+### CLI-019 · Existing CI portability regressions
+
+- Status: TODO
+- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. Independent lane for another agent.
+
+### CLI-020 · Local workspace coding tools
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Acceptance criteria:
+  - [ ] Bounded list/read/search/write/edit/command/git-diff tools, canonical workspace guards and optimistic edits.
+  - [ ] Permission/cancel hooks and fixture tests; preserve concurrent user edits.
+
+### CLI-021 · Coding model adapters
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Depends on: BE-097 for account mode
+- Acceptance criteria:
+  - [ ] Account mode uses generated coding API types; direct mode uses an OpenAI-compatible key/endpoint.
+  - [ ] No SaaS keychain read in direct mode; no provider key upload to SaaS; bounded errors/timeouts.
+
+### CLI-022 · Coding command and iterative tool loop
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Depends on: CLI-020, CLI-021
+- Acceptance criteria:
+  - [ ] `harness code` interactive/one-shot, shared tool loop and prompt/auto/read-only approvals.
+  - [ ] Cancellation, limits, meaningful exit codes and clean final JSON.
+
+### CLI-023 · Project instructions and coding integration tests
+
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Depends on: CLI-020, CLI-022
+- Acceptance criteria:
+  - [ ] Project AGENTS.md context and relevant nested instructions.
+  - [ ] Mock model inspect/edit/test/final workflow through both backends; traversal, stale edit and denied-action tests.
+
+### CLI-024 · Persistent coding sessions/resume
+
+- Status: TODO
+- Depends on: CLI-022
+- Description: profile-local private transcripts, resume by id, no API keys in stored data.
+
+### CLI-025 · Coding TUI and token streaming
+
+- Status: TODO
+- Depends on: CLI-022
+- Description: richer terminal experience and incremental model text/tool-call streaming behind the existing provider interface.
