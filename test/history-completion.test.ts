@@ -185,6 +185,20 @@ describe('shell completion', () => {
     expect(completionCandidates(program, ['--org=org1', 'conversations', ''])).toContain('ls')
     expect(completionCandidates(program, [''])).not.toContain('__complete')
   })
+  it('includes help and implicit list options, but keeps explicit subcommands separate', () => {
+    const program = buildProgram()
+    expect(completionCandidates(program, ['--h'])).toEqual(['--help'])
+    expect(completionCandidates(program, ['conversations', '--l'])).toEqual(['--limit'])
+    expect(completionCandidates(program, ['conversations', '--limit', ''])).toEqual([])
+    expect(completionCandidates(program, ['conversations', '--limit', '2', '--q'])).toEqual([
+      '--query',
+    ])
+    expect(completionCandidates(program, ['conversations', 'show', 'c1', '--q'])).toEqual([])
+    expect(completionCandidates(program, ['--org=org1', 'conversations', '--h'])).toEqual([
+      '--help',
+    ])
+    expect(completionCandidates(program, ['runs', '-aNews', '--h'])).toEqual(['--help'])
+  })
   it.each(['bash', 'zsh', 'fish', 'powershell'])(
     'prints a %s script without auth or API calls',
     async (shell) => {

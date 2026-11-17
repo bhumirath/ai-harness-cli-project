@@ -1,8 +1,38 @@
 import type { Command, Option } from 'commander'
 import { CliError, EXIT } from '../api/errors.ts'
 
+const defaultCommands = new WeakMap<Command, Command>()
+
+/** Keep completion metadata alongside registration, without relying on Commander internals. */
+export function defaultCommand(parent: Command, name: string): Command {
+  const child = parent.command(name, { isDefault: true })
+  defaultCommands.set(parent, child)
+  return child
+}
+
 function optionsFor(command: Command): Option[] {
-  return [...command.options, ...(command.parent ? optionsFor(command.parent) : [])]
+  return [
+    ...command.createHelp().visibleOptions(command),
+    ...(command.parent ? optionsFor(command.parent) : []),
+  ]
+}
+
+function matchOption(
+  options: Option[],
+  word: string,
+): { option: Option; attached: boolean } | undefined {
+  for (const option of options) {
+    if (option.long === word.split('=')[0] || option.short === word)
+      return { option, attached: word.includes('=') }
+    if (
+      option.short &&
+      (option.required || option.optional) &&
+      word.startsWith(option.short) &&
+      word.length > option.short.length
+    )
+      return { option, attached: true }
+  }
+  return undefined
 }
 
 /** Only inspect Commander metadata: completion must never load credentials or call the API. */
@@ -18,10 +48,15 @@ export function completionCandidates(program: Command, words: string[]): string[
     }
     if (word === '--') return []
     if (word.startsWith('-')) {
-      const option = optionsFor(command).find(
-        (o) => o.long === word.split('=')[0] || o.short === word,
-      )
-      if (option && !word.includes('=')) value = option.required || option.optional
+      let match = matchOption(optionsFor(command), word)
+      if (!match) {
+        const fallback = defaultCommands.get(command)
+        if (fallback) {
+          match = matchOption(fallback.createHelp().visibleOptions(fallback), word)
+          if (match) command = fallback
+        }
+      }
+      if (match && !match.attached) value = match.option.required || match.option.optional
       continue
     }
     const child = command.commands.find((c) => c.name() === word || c.aliases().includes(word))
@@ -29,13 +64,19 @@ export function completionCandidates(program: Command, words: string[]): string[
     else positional = true
   }
   if (value) return []
-  const flags = optionsFor(command)
+  const fallback = defaultCommands.get(command)
+  const flags = [
+    ...optionsFor(command),
+    ...(fallback ? fallback.createHelp().visibleOptions(fallback) : []),
+  ]
     .filter((o) => !o.hidden)
     .flatMap((o) => [o.short, o.long].filter((v): v is string => Boolean(v)))
   const names =
     positional || prefix.startsWith('-')
       ? []
-      : command.commands
+      : command
+          .createHelp()
+          .visibleCommands(command)
           .filter((c) => !c.name().startsWith('__'))
           .flatMap((c) => [c.name(), ...c.aliases()])
   return [...new Set([...names, ...flags])].filter((s) => s.startsWith(prefix)).sort()

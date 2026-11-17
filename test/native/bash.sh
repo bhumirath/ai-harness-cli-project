@@ -12,3 +12,12 @@ COMP_WORDS=(harness --org conversations ag)
 COMP_CWORD=3
 _harness_complete
 [[ " ${COMPREPLY[*]} " == *" agents "* ]]
+
+COMP_WORDS=(harness conversations --l)
+COMP_CWORD=2
+_harness_complete
+[[ " ${COMPREPLY[*]} " == *" --limit "* ]]
+COMP_WORDS=(harness conversations --limit 2 --q)
+COMP_CWORD=4
+_harness_complete
+[[ " ${COMPREPLY[*]} " == *" --query "* ]]

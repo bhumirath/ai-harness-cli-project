@@ -148,8 +148,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-017 · Complete help and implicit default-command options
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Acceptance criteria:
-  - [ ] Completion includes built-in help and default `ls` options without typing `ls`.
-  - [ ] Required option values are skipped and sibling command options do not leak.
-  - [ ] Unit and native Bash/Zsh/Fish checks cover the repaired contexts.
+  - [x] Completion includes built-in help and default `ls` options without typing `ls`.
+  - [x] Required option values are skipped and sibling command options do not leak.
+  - [x] Unit and native Bash/Zsh/Fish checks cover the repaired contexts.

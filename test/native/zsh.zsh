@@ -16,3 +16,10 @@ words=(harness --org conversations ag)
 CURRENT=4
 actual=$(_harness_complete)
 [[ "$actual" == agents ]]
+
+words=(harness conversations --l)
+CURRENT=3
+[[ "$(_harness_complete)" == --limit ]]
+words=(harness conversations --limit 2 --q)
+CURRENT=5
+[[ "$(_harness_complete)" == --query ]]

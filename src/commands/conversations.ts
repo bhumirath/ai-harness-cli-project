@@ -1,3 +1,4 @@
+import { defaultCommand } from './completion.ts'
 import type { Command } from 'commander'
 import pc from 'picocolors'
 import { unwrap } from '../api/client.ts'
@@ -29,8 +30,7 @@ function printMessage(message: components['schemas']['MessageDto']): void {
 
 export function registerConversations(program: Command): void {
   const conversations = program.command('conversations').description('Browse conversation history')
-  conversations
-    .command('ls', { isDefault: true })
+  defaultCommand(conversations, 'ls')
     .description('List conversations, newest first')
     .option('-q, --query <text>', 'search titles')
     .option('--cursor <id>', 'nextCursor from the previous page')

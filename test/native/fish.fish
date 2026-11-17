@@ -7,3 +7,8 @@ contains -- ls $actual; or exit 1
 contains -- show $actual; or exit 1
 set actual (complete -C 'harness --org conversations ag')
 contains -- agents $actual; or exit 1
+
+set actual (complete -C 'harness conversations --l')
+contains -- --limit $actual; or exit 1
+set actual (complete -C 'harness conversations --limit 2 --q')
+contains -- --query $actual; or exit 1

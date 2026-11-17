@@ -1,3 +1,4 @@
+import { defaultCommand } from './completion.ts'
 import type { Command } from 'commander'
 import pc from 'picocolors'
 import { unwrap, type Api } from '../api/client.ts'
@@ -30,8 +31,7 @@ export function registerTemplates(program: Command): void {
   const tpl = program
     .command('templates')
     .description('Ready-made agents (news digest, inbox digest, …)')
-  tpl
-    .command('ls', { isDefault: true })
+  defaultCommand(tpl, 'ls')
     .description('List templates')
     .action(async (_o: unknown, cmd: Command) => {
       const api = apiFor(cmd, { requireAuth: false })

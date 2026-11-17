@@ -1,3 +1,4 @@
+import { defaultCommand } from './completion.ts'
 import * as p from '@clack/prompts'
 import type { Command } from 'commander'
 import { createApi, unwrap } from '../api/client.ts'
@@ -15,8 +16,7 @@ export function registerOrgs(program: Command): void {
     const me = await unwrap(api.client.GET('/api/me'), settings.apiUrl)
     return { me, current: settings.orgId ?? me.currentOrgId }
   }
-  orgs
-    .command('ls', { isDefault: true })
+  defaultCommand(orgs, 'ls')
     .description('List your organization memberships')
     .action(async (_opts: unknown, cmd: Command) => {
       const { me, current } = await memberships(cmd)

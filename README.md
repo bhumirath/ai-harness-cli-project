@@ -109,7 +109,8 @@ harness completion fish | source
 harness completion powershell | Out-String | Invoke-Expression
 ```
 
-Completion suggests commands, subcommands and flags. It does not complete account data or option
+Completion suggests commands, subcommands and flags, including built-in help and implicit
+list-command options such as `conversations --limit` without typing `ls`. It does not complete account data or option
 values, read saved credentials, or contact the API. Bash/Zsh/Fish adapter execution is tested on Linux; Fish uses its completion engine and Zsh
 tests token handling with a compadd stub (interactive ZLE remains untested). PowerShell still
 needs native verification.

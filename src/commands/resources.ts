@@ -1,3 +1,4 @@
+import { defaultCommand } from './completion.ts'
 import type { Command } from 'commander'
 import pc from 'picocolors'
 import { unwrap, type Api } from '../api/client.ts'
@@ -52,8 +53,7 @@ function printRun(r: Run): void {
 export function registerResources(program: Command): void {
   // ---- agents ----
   const agents = program.command('agents').description('List, inspect and run agents')
-  agents
-    .command('ls', { isDefault: true })
+  defaultCommand(agents, 'ls')
     .description('List agents')
     .action(async (_o: unknown, cmd: Command) => {
       const api = apiFor(cmd)
@@ -118,8 +118,7 @@ export function registerResources(program: Command): void {
 
   // ---- runs ----
   const runs = program.command('runs').description('Background runs')
-  runs
-    .command('ls', { isDefault: true })
+  defaultCommand(runs, 'ls')
     .option('-a, --agent <agent>', 'agent id or name')
     .description('Recent runs of an agent')
     .action(async (opts: { agent?: string }, cmd: Command) => {
@@ -158,8 +157,7 @@ export function registerResources(program: Command): void {
 
   // ---- schedules ----
   const sched = program.command('schedules').description('Scheduled jobs ("every day at 7:00 …")')
-  sched
-    .command('ls', { isDefault: true })
+  defaultCommand(sched, 'ls')
     .description('List scheduled jobs of all agents')
     .action(async (_o: unknown, cmd: Command) => {
       const list = await allJobs(apiFor(cmd))
@@ -261,8 +259,7 @@ export function registerResources(program: Command): void {
 
   // ---- approvals ----
   const approvals = program.command('approvals').description('Actions waiting for your OK')
-  approvals
-    .command('ls', { isDefault: true })
+  defaultCommand(approvals, 'ls')
     .description('Pending approvals')
     .action(async (_o: unknown, cmd: Command) => {
       const api = apiFor(cmd)
@@ -332,8 +329,7 @@ export function registerResources(program: Command): void {
 
   // ---- memory ----
   const memory = program.command('memory').description('What your agents remember about you')
-  memory
-    .command('ls', { isDefault: true })
+  defaultCommand(memory, 'ls')
     .option('-q, --query <text>', 'search')
     .description('List memories')
     .action(async (opts: { query?: string }, cmd: Command) => {
@@ -444,8 +440,7 @@ export function registerResources(program: Command): void {
   const tokens = program
     .command('tokens')
     .description('Access tokens (create new ones in the web app)')
-  tokens
-    .command('ls', { isDefault: true })
+  defaultCommand(tokens, 'ls')
     .description('List your access tokens')
     .action(async (_o: unknown, cmd: Command) => {
       const api = apiFor(cmd)
