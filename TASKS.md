@@ -172,8 +172,8 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-019 · Existing CI portability regressions
 
-- Status: TODO
-- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. Independent lane for another agent.
+- Status: IN_PROGRESS (codex, 2026-11-17)
+- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. Claimed after verifying the lane was still unclaimed; required to validate the coding release across platforms.
 
 ### CLI-020 · Local workspace coding tools
 
