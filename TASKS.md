@@ -73,8 +73,9 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: implemented history (CLI-009), completion (CLI-010), org picker (CLI-011), Markdown
   (CLI-012) and keychain (CLI-013). Remaining validation: successful native keychain storage on
-  macOS/Windows and PowerShell completion. Linux Secret Service write/read/migration/logout and
-  Bash/Zsh/Fish adapter execution pass in the isolated native test environment (CLI-016).
+  macOS/Windows, Windows PowerShell cmd-shim execution, and interactive Zsh ZLE behavior.
+  Linux Secret Service write/read/migration/logout and Bash/Zsh/Fish adapters pass (CLI-016);
+  real PowerShell 7.4 on Linux also passes, including legacy argument passing (CLI-018).
 
 ### CLI-009 · Conversation history (from CLI-007)
 
@@ -156,8 +157,11 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-018 · PowerShell completion validation and argument transport
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: IN_PROGRESS (codex, 2026-11-17) — Linux PowerShell passed; Windows cmd-shim CI execution pending
 - Acceptance criteria:
-  - [ ] Test generated script through the real PowerShell completion engine.
+  - [x] Test generated script through the real PowerShell completion engine.
   - [ ] Quoted words and trailing empty arguments survive native/cmd-shim transport.
-  - [ ] Regression coverage and repeatable Docker/Windows CI smoke checks.
+  - [x] Regression coverage and repeatable Docker/Windows CI smoke checks.
+- Progress: fixed quoted command/current words and added encoded argument transport. PowerShell
+  7.4 on Linux passes quoted, empty and Thai words in Legacy/Standard/Windows argument modes.
+  Windows shim test is configured in CI but still needs GitHub authentication to run.

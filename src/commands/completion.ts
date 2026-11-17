@@ -114,11 +114,19 @@ const scripts: Record<string, string[]> = {
     'Register-ArgumentCompleter -Native -CommandName harness -ScriptBlock {',
     '  param($wordToComplete, $commandAst, $cursorPosition)',
     '  $elements = @($commandAst.CommandElements | Select-Object -Skip 1 | Where-Object { $_.Extent.StartOffset -lt $cursorPosition })',
-    '  $words = @($elements | ForEach-Object { $_.Extent.Text })',
+    '  $words = @($elements | ForEach-Object {',
+    '    if ($_ -is [System.Management.Automation.Language.StringConstantExpressionAst]) { $_.Value } else { $_.Extent.Text }',
+    '  })',
     '  if ($wordToComplete) {',
-    '    if ($words.Count) { $words[$words.Count - 1] = $wordToComplete }',
+    '    if ($words.Count) {',
+    '      $last = $elements[$elements.Count - 1]',
+    '      if ($last -is [System.Management.Automation.Language.StringConstantExpressionAst] -and $last.Extent.EndOffset -le $cursorPosition) {',
+    '        $words[$words.Count - 1] = $last.Value',
+    '      } else { $words[$words.Count - 1] = $wordToComplete }',
+    '    }',
     '  } else { $words += "" }',
-    '  harness __complete -- @words | ForEach-Object {',
+    '  $payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Compress -InputObject $words)))',
+    '  harness __complete-json $payload | ForEach-Object {',
     '    [System.Management.Automation.CompletionResult]::new($_, $_, "ParameterValue", $_)',
     '  }',
     '}',
@@ -133,6 +141,20 @@ export function registerCompletion(program: Command): void {
       const candidates = completionCandidates(program, words)
       if (candidates.length) process.stdout.write(`${candidates.join('\n')}\n`)
     })
+  program.command('__complete-json <payload>', { hidden: true }).action((payload: string) => {
+    let words: unknown
+    try {
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(payload)) throw new Error('Invalid base64')
+      words = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'))
+    } catch {
+      throw new CliError('Invalid completion payload.', { exitCode: EXIT.usage })
+    }
+    if (!Array.isArray(words) || !words.every((word): word is string => typeof word === 'string')) {
+      throw new CliError('Invalid completion payload.', { exitCode: EXIT.usage })
+    }
+    const candidates = completionCandidates(program, words)
+    if (candidates.length) process.stdout.write(`${candidates.join('\n')}\n`)
+  })
   program
     .command('completion <shell>')
     .description('Print shell completion script: bash | zsh | fish | powershell')

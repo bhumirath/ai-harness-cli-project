@@ -218,6 +218,24 @@ describe('shell completion', () => {
     ).toBe(0)
     expect(c.out()).toBe('--before\n')
   })
+  it('preserves empty words and quoted values through the encoded completion transport', async () => {
+    const c = capture()
+    const payload = Buffer.from(
+      JSON.stringify(['--org', 'Some Org', 'conversations', '']),
+    ).toString('base64')
+    expect(await main(['node', 'harness', '__complete-json', payload])).toBe(0)
+    expect(c.out().split('\n')).toEqual(expect.arrayContaining(['ls', 'show', '--limit']))
+  })
+  it.each([
+    'not-base64!',
+    Buffer.from('{}').toString('base64'),
+    Buffer.from('[1]').toString('base64'),
+  ])('rejects malformed encoded completion data without echoing it', async (payload) => {
+    const c = capture()
+    expect(await main(['node', 'harness', '__complete-json', payload])).toBe(2)
+    expect(c.out()).toBe('')
+    expect(c.err()).toContain('Invalid completion payload.')
+  })
   it('rejects unsupported shells', async () => {
     capture()
     expect(await main(['node', 'harness', 'completion', 'unknown'])).toBe(2)

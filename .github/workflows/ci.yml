@@ -23,6 +23,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - if: runner.os == 'Windows'
+        run: pnpm test:native:powershell:windows
       - run: node dist/bin.js --version
       - run: pnpm verify:package
 
@@ -37,3 +39,4 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:native:linux
+      - run: pnpm test:native:powershell

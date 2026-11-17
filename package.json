@@ -26,7 +26,9 @@
     "prepack": "pnpm build",
     "verify:package": "node scripts/verify-package.mjs",
     "build:sea": "node scripts/build-sea.mjs",
-    "test:native:linux": "pnpm build && node scripts/test-native-linux.mjs"
+    "test:native:linux": "pnpm build && node scripts/test-native-linux.mjs",
+    "test:native:powershell": "pnpm build && node scripts/test-native-linux.mjs --powershell",
+    "test:native:powershell:windows": "node scripts/test-native-powershell-windows.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",

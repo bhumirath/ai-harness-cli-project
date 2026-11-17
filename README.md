@@ -105,15 +105,17 @@ harness completion fish | source
 ```
 
 ```powershell
-# PowerShell 7.3+: add to $PROFILE (preserves empty native arguments)
+# PowerShell 7.3+: add to $PROFILE
 harness completion powershell | Out-String | Invoke-Expression
 ```
 
 Completion suggests commands, subcommands and flags, including built-in help and implicit
 list-command options such as `conversations --limit` without typing `ls`. It does not complete account data or option
 values, read saved credentials, or contact the API. Bash/Zsh/Fish adapter execution is tested on Linux; Fish uses its completion engine and Zsh
-tests token handling with a compadd stub (interactive ZLE remains untested). PowerShell still
-needs native verification.
+tests token handling with a compadd stub (interactive ZLE remains untested). PowerShell 7.4
+is tested on Linux through its completion engine, including legacy argument passing, quoted
+words and Thai organization names. The adapter encodes its argument list to preserve empty
+words through Windows npm `.cmd` shims; actual Windows execution remains pending CI.
 
 ## Release preparation (CLI-006)
 
@@ -177,3 +179,12 @@ mounts only the built CLI, dependencies, package metadata and native tests as re
 a disposable home/config/keyring. It never reads or changes the host desktop keyring. Tests cover
 command prefixes, empty completion words, global option values and real keychain migration/logout.
 The native-linux CI job runs the same check.
+
+PowerShell completion also has an isolated Linux test:
+
+```bash
+pnpm test:native:powershell
+```
+
+On Windows CI, `pnpm test:native:powershell:windows` runs the same cases through a real
+`.cmd` wrapper matching npm's shim. This Windows check is configured but has not run locally.

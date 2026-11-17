@@ -126,6 +126,9 @@ try {
   const env = { ...process.env, HARNESS_CONFIG: settings, HARNESS_TOKEN: '', HARNESS_ORG: '' }
   const run = (args) => execFileSync(executable, args, { cwd: isolated, env, encoding: 'utf8' })
   if (run(['--version']).trim() !== pkg.version) throw new Error('Standalone version mismatch')
+  const completionPayload = Buffer.from(JSON.stringify(['conversations', '--l'])).toString('base64')
+  if (run(['__complete-json', completionPayload]).trim() !== '--limit')
+    throw new Error('Standalone encoded completion failed')
   for (const args of [['--help'], ['conversations', '--help'], ['completion', 'bash']]) run(args)
   writeFileSync(
     settings,
