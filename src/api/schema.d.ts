@@ -596,6 +596,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/coding/turn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CodingController_turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/plans": {
         parameters: {
             query?: never;
@@ -1829,6 +1845,54 @@ export interface components {
             /** @description Switch model for this and following messages */
             modelRef?: string;
         };
+        CodingFunctionCallDto: {
+            name: string;
+            arguments: string;
+        };
+        CodingToolCallDto: {
+            id: string;
+            /** @enum {string} */
+            type: "function";
+            function: components["schemas"]["CodingFunctionCallDto"];
+        };
+        CodingMessageDto: {
+            /** @enum {string} */
+            role: "system" | "user" | "assistant" | "tool";
+            content: string | null;
+            tool_calls?: components["schemas"]["CodingToolCallDto"][];
+            tool_call_id?: string;
+        };
+        CodingFunctionDefinitionDto: {
+            name: string;
+            description?: string;
+            parameters: {
+                [key: string]: unknown;
+            };
+        };
+        CodingToolDefinitionDto: {
+            /** @enum {string} */
+            type: "function";
+            function: components["schemas"]["CodingFunctionDefinitionDto"];
+        };
+        CodingTurnRequestDto: {
+            modelRef: string;
+            messages: components["schemas"]["CodingMessageDto"][];
+            tools: components["schemas"]["CodingToolDefinitionDto"][];
+            /** @default 2048 */
+            maxOutputTokens: number;
+        };
+        CodingUsageDto: {
+            inputTokens: number;
+            outputTokens: number;
+            cachedInputTokens: number;
+        };
+        CodingTurnResponseDto: {
+            message: components["schemas"]["CodingMessageDto"];
+            finishReason: string;
+            usage: components["schemas"]["CodingUsageDto"];
+            /** @description Integer micro-credits charged by AI Harness */
+            chargedMicro: string;
+        };
         PlanLimitsDto: {
             byokOnly: boolean;
             maxAgents?: number | null;
@@ -2479,6 +2543,14 @@ export type SchemaUpdateConversationDto = components['schemas']['UpdateConversat
 export type SchemaImageUrlDto = components['schemas']['ImageUrlDto'];
 export type SchemaContentPartDto = components['schemas']['ContentPartDto'];
 export type SchemaSendMessageDto = components['schemas']['SendMessageDto'];
+export type SchemaCodingFunctionCallDto = components['schemas']['CodingFunctionCallDto'];
+export type SchemaCodingToolCallDto = components['schemas']['CodingToolCallDto'];
+export type SchemaCodingMessageDto = components['schemas']['CodingMessageDto'];
+export type SchemaCodingFunctionDefinitionDto = components['schemas']['CodingFunctionDefinitionDto'];
+export type SchemaCodingToolDefinitionDto = components['schemas']['CodingToolDefinitionDto'];
+export type SchemaCodingTurnRequestDto = components['schemas']['CodingTurnRequestDto'];
+export type SchemaCodingUsageDto = components['schemas']['CodingUsageDto'];
+export type SchemaCodingTurnResponseDto = components['schemas']['CodingTurnResponseDto'];
 export type SchemaPlanLimitsDto = components['schemas']['PlanLimitsDto'];
 export type SchemaPlanDto = components['schemas']['PlanDto'];
 export type SchemaAutoTopupDto = components['schemas']['AutoTopupDto'];
@@ -3514,6 +3586,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    CodingController_turn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodingTurnRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodingTurnResponseDto"];
+                };
             };
         };
     };

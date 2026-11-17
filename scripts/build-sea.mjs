@@ -123,7 +123,15 @@ try {
   copyFileSync(binary, executable)
   chmodSync(executable, 0o755)
   const settings = join(isolated, 'config.json')
-  const env = { ...process.env, HARNESS_CONFIG: settings, HARNESS_TOKEN: '', HARNESS_ORG: '' }
+  const env = {
+    ...process.env,
+    HARNESS_CONFIG: settings,
+    HARNESS_TOKEN: '',
+    HARNESS_ORG: '',
+    HARNESS_SEA_TEST_KEY: 'dummy-direct-key',
+  }
+  for (const key of Object.keys(env)) if (key.toLowerCase() === 'path') delete env[key]
+  env.PATH = ''
   const run = (args) => execFileSync(executable, args, { cwd: isolated, env, encoding: 'utf8' })
   if (run(['--version']).trim() !== pkg.version) throw new Error('Standalone version mismatch')
   const completionPayload = Buffer.from(JSON.stringify(['conversations', '--l'])).toString('base64')
@@ -147,8 +155,59 @@ try {
   if (JSON.parse(readFileSync(settings, 'utf8')).token !== 'hk_dummy_package')
     throw new Error('Failed keychain migration changed the saved login')
 
+  writeFileSync(join(isolated, 'code-fixture.txt'), 'before')
+  let codingStep = 0
   const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json')
+    if (req.url === '/v1/chat/completions' && req.method === 'POST') {
+      if (req.headers.authorization !== 'Bearer dummy-direct-key') {
+        res.statusCode = 401
+        res.end('{}')
+        return
+      }
+      let raw = ''
+      req.on('data', (chunk) => {
+        raw += String(chunk)
+      })
+      req.on('end', () => {
+        const calls = [
+          ['read_file', { path: 'code-fixture.txt' }],
+          ['edit_file', { path: 'code-fixture.txt', oldText: 'before', newText: 'after' }],
+          ['run_command', { command: `"${executable}" --version` }],
+        ]
+        let message
+        if (codingStep < calls.length) {
+          const [name, args] = calls[codingStep]
+          message = {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: `call-${codingStep}`,
+                type: 'function',
+                function: { name, arguments: JSON.stringify(args) },
+              },
+            ],
+          }
+        } else {
+          const body = JSON.parse(raw)
+          const tool = JSON.parse(body.messages.at(-1).content)
+          message = {
+            role: 'assistant',
+            content:
+              tool.ok && tool.exitCode === 0 ? 'Coding fixture passed.' : 'Coding command failed.',
+          }
+        }
+        codingStep++
+        res.end(
+          JSON.stringify({
+            choices: [{ message, finish_reason: message.tool_calls ? 'tool_calls' : 'stop' }],
+            usage: { prompt_tokens: 10, completion_tokens: 5 },
+          }),
+        )
+      })
+      return
+    }
     if (req.headers.authorization !== 'Bearer hk_dummy_package') {
       res.statusCode = 401
       res.end('{}')
@@ -164,6 +223,36 @@ try {
       { cwd: isolated, env, timeout: 10000 },
     )
     if (JSON.parse(stdout).items.length !== 0) throw new Error('Standalone API request failed')
+    const coding = await promisify(execFile)(
+      executable,
+      [
+        'code',
+        'Fix the fixture and verify the command',
+        '--cwd',
+        isolated,
+        '--backend',
+        'direct',
+        '--model',
+        'smoke-model',
+        '--base-url',
+        `http://127.0.0.1:${server.address().port}/v1`,
+        '--api-key-env',
+        'HARNESS_SEA_TEST_KEY',
+        '--approval',
+        'auto',
+        '--max-steps',
+        '6',
+        '--json',
+      ],
+      { cwd: isolated, env, timeout: 30000 },
+    )
+    const codingResult = JSON.parse(coding.stdout)
+    if (
+      codingResult.status !== 'completed' ||
+      codingResult.summary !== 'Coding fixture passed.' ||
+      readFileSync(join(isolated, 'code-fixture.txt'), 'utf8') !== 'after'
+    )
+      throw new Error('Standalone coding edit/command loop failed')
   } finally {
     await new Promise((resolve) => server.close(resolve))
   }

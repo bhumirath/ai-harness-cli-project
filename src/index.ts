@@ -2,6 +2,7 @@ import { Command, CommanderError } from 'commander'
 import pc from 'picocolors'
 import { CliError, EXIT } from './api/errors.ts'
 import { registerAuth } from './commands/auth.ts'
+import { registerCode } from './commands/code.ts'
 import { registerCompletion } from './commands/completion.ts'
 import { registerConversations } from './commands/conversations.ts'
 import { registerChat } from './commands/chat.ts'
@@ -14,7 +15,7 @@ import { VERSION } from './version.ts'
 export function buildProgram(): Command {
   const program = new Command()
     .name('harness')
-    .description('AI Harness — your always-on AI agents, from the terminal')
+    .description('AI Harness — coding and always-on AI agents, from your terminal')
     .version(VERSION, '-v, --version')
     .option('--api-url <url>', 'API base URL (env HARNESS_API_URL)')
     .option('--org <id>', 'organization id (env HARNESS_ORG)')
@@ -28,12 +29,14 @@ export function buildProgram(): Command {
   registerConversations(program)
   registerTemplates(program)
   registerUpdate(program)
+  registerCode(program)
   registerCompletion(program)
   program.addHelpText(
     'after',
     `
 Examples:
   $ harness login
+  $ harness code "Fix the failing tests" --cwd .
   $ harness ask "สรุปข่าว AI วันนี้ 5 ข้อ"
   $ git diff | harness ask "review this diff"
   $ harness templates use morning-news --schedule

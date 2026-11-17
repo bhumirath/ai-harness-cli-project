@@ -1,7 +1,7 @@
 {
   "name": "@ai-harness/cli",
   "version": "0.1.0",
-  "description": "Command-line client for AI Harness — chat with your always-on agents from the terminal",
+  "description": "AI Harness — local coding agent and always-on agent CLI",
   "license": "UNLICENSED",
   "type": "module",
   "bin": {

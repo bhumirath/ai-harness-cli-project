@@ -23,7 +23,7 @@ Use `HARNESS_CONFIG=/tmp/x/config.json` to keep test logins away from your real 
 ## Rules
 
 - Account operations remain a thin client; local coding orchestration/tools are authorized by D-012 and docs/12-coding-cli.md. Billing/plan logic remains server-side.
-- API contract: every call goes through the generated OpenAPI types
+- AI Harness API calls go through the generated OpenAPI types
   (`src/api/schema.d.ts` — never hand-write API types; regenerate after backend changes).
 - The token is a secret: only in the config file (mode 0600), the opt-in OS keychain, or `HARNESS_TOKEN`; never print or log it. Keychain mode must not silently fall back to plaintext storage.
 - Money: micro-credit strings → `formatCredits` (BigInt). No floats.

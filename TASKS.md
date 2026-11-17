@@ -173,38 +173,38 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 ### CLI-019 · Existing CI portability regressions
 
 - Status: IN_PROGRESS (codex, 2026-11-17)
-- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. Claimed after verifying the lane was still unclaimed; required to validate the coding release across platforms.
+- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. CRLF normalization, LF checkout policy and ANSI-insensitive assertion fixed; local forced-color/CRLF checks pass. Remote native CI verification pending.
 
 ### CLI-020 · Local workspace coding tools
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Acceptance criteria:
-  - [ ] Bounded list/read/search/write/edit/command/git-diff tools, canonical workspace guards and optimistic edits.
-  - [ ] Permission/cancel hooks and fixture tests; preserve concurrent user edits.
+  - [x] Bounded list/read/search/write/edit/command/git-diff tools, canonical workspace guards and optimistic edits.
+  - [x] Permission/cancel hooks and fixture tests; preserve concurrent user edits.
 
 ### CLI-021 · Coding model adapters
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Depends on: BE-097 for account mode
 - Acceptance criteria:
-  - [ ] Account mode uses generated coding API types; direct mode uses an OpenAI-compatible key/endpoint.
-  - [ ] No SaaS keychain read in direct mode; no provider key upload to SaaS; bounded errors/timeouts.
+  - [x] Account mode uses generated coding API types; direct mode uses an OpenAI-compatible key/endpoint.
+  - [x] No SaaS keychain read in direct mode; no provider key upload to SaaS; bounded errors/timeouts.
 
 ### CLI-022 · Coding command and iterative tool loop
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Depends on: CLI-020, CLI-021
 - Acceptance criteria:
-  - [ ] `harness code` interactive/one-shot, shared tool loop and prompt/auto/read-only approvals.
-  - [ ] Cancellation, limits, meaningful exit codes and clean final JSON.
+  - [x] `harness code` interactive/one-shot, shared tool loop and prompt/auto/read-only approvals.
+  - [x] Cancellation, limits, meaningful exit codes and clean final JSON.
 
 ### CLI-023 · Project instructions and coding integration tests
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
+- Status: DONE (2026-11-17)
 - Depends on: CLI-020, CLI-022
 - Acceptance criteria:
-  - [ ] Project AGENTS.md context and relevant nested instructions.
-  - [ ] Mock model inspect/edit/test/final workflow through both backends; traversal, stale edit and denied-action tests.
+  - [x] Project AGENTS.md context and relevant nested instructions.
+  - [x] Mock model inspect/edit/test/final workflow through both backends; traversal, stale edit and denied-action tests.
 
 ### CLI-024 · Persistent coding sessions/resume
 

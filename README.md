@@ -1,6 +1,6 @@
 # AI Harness CLI (`harness`)
 
-Talk to your always-on AI agents from the terminal.
+Code in local projects and work with your always-on AI agents from the terminal.
 
 ```bash
 npm i -g @ai-harness/cli        # (not published yet — see TASKS CLI-006)
@@ -25,6 +25,51 @@ Every read command supports `--json`. Scripts/CI: `HARNESS_TOKEN=hk_… harness 
 | `HARNESS_CONFIG`  | config file path (default `~/.config/ai-harness/config.json`, `%APPDATA%` on Windows) |
 
 Exit codes: 0 ok · 1 error · 2 usage · 3 not logged in / token invalid · 4 out of credits / plan limit.
+
+## Coding agent
+
+```bash
+# Account models: use a ref from harness models
+harness code "Fix the failing test and verify it" --cwd ./project --model <model-ref>
+
+# Interactive session (type /new or /exit)
+harness code --cwd ./project
+
+# Direct provider: SaaS login/keychain is not loaded
+export OPENAI_API_KEY=...
+harness code "Add pagination and test it" --cwd ./project --backend direct --model <model-id>
+
+# Keyless local OpenAI-compatible endpoint
+harness code "Review this project" --cwd ./project --backend direct --base-url http://localhost:11434/v1 --model <model-id> --approval read-only
+
+# Automation: explicitly grant actions and receive one final JSON result
+harness code "Fix the bug and run tests" --cwd ./project --backend direct --model <model-id> --approval auto --max-steps 20 --json
+```
+
+Coding mode can list/read/search a workspace, make guarded text edits, create files, run test/shell
+commands, inspect Git diff and iterate over model tool calls. It loads root/nested AGENTS.md, rejects
+file traversal/symlink escapes, checks stale edits and bounds tool output/time/steps. Common secret
+file patterns and Git metadata are excluded from file tools.
+
+Default `--approval prompt` asks before writes and command execution (including Git diff, whose
+repository filters can execute programs). `read-only` denies these; `auto` grants standing permission.
+Shell commands run with your user permissions and workspace cwd; file-tool path guards are not an OS
+shell sandbox. Noninteractive/JSON callers choose `auto` or `read-only` explicitly. Ctrl+C stops the
+current model/tool operation; existing edits remain in place.
+
+Account mode uses existing BYOK/platform models, entitlements, quotas and usage accounting. Direct
+mode uses an OpenAI-compatible endpoint (`--base-url` / `OPENAI_BASE_URL`) and key environment variable
+(`--api-key-env`, default OPENAI_API_KEY); the direct key is not sent to AI Harness. Direct native
+Anthropic/Gemini protocols are follow-ups; they are available through the account gateway. Known CLI auth values are redacted from model/tool text,
+and the CLI's selected auth environment variable is not inherited by test/shell commands. If a
+project needs its own provider key for tests, use a separate variable for the coding agent key.
+This does not isolate shell commands from other credentials accessible to your OS user.
+
+This first coding mode has in-memory task history and per-step text/tool progress. Persistent resume
+and richer TUI/token streaming are follow-up tasks. Once execution starts, JSON includes status,
+summary/error, changed files and usage; configuration/auth failures before startup follow normal CLI
+stderr/exit behavior. The model's final answer is not a substitute for reviewing its changes/tests.
+Full contract and parallel-AI ownership: hub `docs/12-coding-cli.md` and `TASKS.md`.
 
 ## Token storage
 
