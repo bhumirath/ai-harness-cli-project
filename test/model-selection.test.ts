@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { preferredCodingModel } from '../src/commands/code.ts'
+import { parseApprovalMode, preferredCodingModel } from '../src/commands/code.ts'
 
 const model = (modelId: string, supportsTools = true) => ({
   ref: `byok:credential:${modelId}`,
@@ -7,6 +7,16 @@ const model = (modelId: string, supportsTools = true) => ({
   displayName: modelId,
   provider: 'openai',
   supportsTools,
+})
+
+describe('coding permission selection', () => {
+  it.each(['prompt', 'read-only', 'auto'] as const)('accepts %s', (mode) => {
+    expect(parseApprovalMode(mode)).toBe(mode)
+  })
+
+  it('rejects unknown permission modes', () => {
+    expect(parseApprovalMode('always')).toBeUndefined()
+  })
 })
 
 describe('coding model selection', () => {

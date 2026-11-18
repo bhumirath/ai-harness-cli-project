@@ -23,6 +23,11 @@ type CodingModel = {
 }
 
 const unsuitableInteractiveModel = /(?:audio|image|realtime|live)|^chat-latest$/i
+const approvalModes = ['prompt', 'read-only', 'auto'] as const
+
+export function parseApprovalMode(value: string): ApprovalMode | undefined {
+  return approvalModes.find((mode) => mode === value)
+}
 
 export function preferredCodingModel(models: CodingModel[]): CodingModel | undefined {
   const usable = models.filter(
@@ -70,10 +75,7 @@ export function registerCode(program: Command): void {
         },
         cmd: Command,
       ) => {
-        if (
-          !['harness', 'direct'].includes(opts.backend) ||
-          !['prompt', 'auto', 'read-only'].includes(opts.approval)
-        )
+        if (!['harness', 'direct'].includes(opts.backend) || !parseApprovalMode(opts.approval))
           throw new CliError('Invalid --backend or --approval', { exitCode: EXIT.usage })
         if (
           !/^\d+$/.test(opts.maxSteps) ||
@@ -284,6 +286,39 @@ export function registerCode(program: Command): void {
                 await sessions.save(session)
               }
               process.stderr.write(`Model changed to ${chosen.displayName || chosen.modelId}.\n`)
+              task = ''
+              continue
+            }
+            if (
+              interactive &&
+              (task === '/permission' ||
+                task.startsWith('/permission ') ||
+                task === '/approval' ||
+                task.startsWith('/approval '))
+            ) {
+              const command = task.startsWith('/approval') ? '/approval' : '/permission'
+              const requested = task.slice(command.length).trim()
+              let chosen = requested ? parseApprovalMode(requested) : undefined
+              if (!requested) {
+                process.stderr.write(
+                  `\nPermission modes:\n  1. prompt${opts.approval === 'prompt' ? ' (current)' : ''} — ask before writes and commands\n  2. read-only${opts.approval === 'read-only' ? ' (current)' : ''} — deny writes and commands\n  3. auto${opts.approval === 'auto' ? ' (current)' : ''} — allow writes and commands without asking\n`,
+                )
+                const answer = (
+                  await terminal!.question('Select permission number (blank to cancel): ')
+                ).trim()
+                if (answer) chosen = approvalModes[Number(answer) - 1]
+              }
+              if (!chosen) {
+                process.stderr.write(
+                  requested ? `Unknown permission mode: ${requested}\n` : 'Canceled.\n',
+                )
+                task = ''
+                continue
+              }
+              opts.approval = chosen
+              process.stderr.write(
+                `Permission changed to ${chosen}${chosen === 'auto' ? ' for this run only' : ''}.\n`,
+              )
               task = ''
               continue
             }

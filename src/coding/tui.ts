@@ -54,9 +54,7 @@ export class CodeTui {
       `${pc.dim('model')}      ${compact(info.model, this.width() - 15)}`,
       `${pc.dim('backend')}    ${info.backend}    ${pc.dim('approval')}  ${info.approval}`,
     ])
-    this.output.write(
-      `${pc.dim('Type a task, /model to choose a model, /new for fresh context, or /exit.')}\n`,
-    )
+    this.output.write(`${pc.dim('Commands: /model, /permission, /new, /exit.')}\n`)
   }
 
   prompt(): string {
