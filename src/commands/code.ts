@@ -14,6 +14,27 @@ import { SessionStore, type CodingSession } from '../coding/sessions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
 import type { ProgressEvent } from '../coding/loop.ts'
 
+type CodingModel = {
+  ref: string
+  modelId: string
+  displayName: string
+  provider: string
+  supportsTools: boolean
+}
+
+const unsuitableInteractiveModel = /(?:audio|image|realtime|live)|^chat-latest$/i
+
+export function preferredCodingModel(models: CodingModel[]): CodingModel | undefined {
+  const usable = models.filter(
+    (model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId),
+  )
+  return (
+    usable.find((model) => model.modelId === 'gpt-4.1') ??
+    usable.find((model) => /codex/i.test(model.modelId)) ??
+    usable[0]
+  )
+}
+
 export function registerCode(program: Command): void {
   program
     .command('code [task...]')
@@ -106,6 +127,8 @@ export function registerCode(program: Command): void {
         }
         let provider: CodeProvider
         let selectedModel: string
+        let accountApi: ReturnType<typeof apiFor> | undefined
+        let availableModels: CodingModel[] = []
         if (opts.backend === 'direct') {
           const model = opts.model ?? process.env.HARNESS_CODE_MODEL
           if (!model)
@@ -121,11 +144,10 @@ export function registerCode(program: Command): void {
           )
         } else {
           const api = apiFor(cmd)
+          accountApi = api
+          availableModels = await unwrap(api.client.GET('/api/models'), api.settings.apiUrl)
           let model = opts.model
-          if (!model) {
-            const models = await unwrap(api.client.GET('/api/models'), api.settings.apiUrl)
-            model = models.find((m) => m.supportsTools)?.ref
-          }
+          if (!model) model = preferredCodingModel(availableModels)?.ref
           if (!model)
             throw new CliError(
               'No tool-capable model is available; configure a model in AI Harness',
@@ -209,6 +231,59 @@ export function registerCode(program: Command): void {
                 session.messages = []
                 await sessions.save(session)
               }
+              task = ''
+              continue
+            }
+            if (interactive && (task === '/model' || task.startsWith('/model '))) {
+              if (!accountApi) {
+                process.stderr.write(
+                  'Changing models in-session is available with the harness backend.\n',
+                )
+                task = ''
+                continue
+              }
+              availableModels = await unwrap(
+                accountApi.client.GET('/api/models'),
+                accountApi.settings.apiUrl,
+              )
+              const choices = availableModels.filter(
+                (model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId),
+              )
+              const requested = task.slice('/model'.length).trim()
+              let chosen = requested
+                ? choices.find((model) => model.ref === requested || model.modelId === requested)
+                : undefined
+              if (!requested) {
+                process.stderr.write('\nAvailable coding models:\n')
+                choices.forEach((model, index) => {
+                  const current = model.ref === selectedModel ? ' (current)' : ''
+                  process.stderr.write(
+                    `  ${index + 1}. ${model.displayName || model.modelId} · ${model.provider}${current}\n`,
+                  )
+                })
+                const answer = (
+                  await terminal!.question('Select model number (blank to cancel): ')
+                ).trim()
+                if (answer) {
+                  const number = Number(answer)
+                  if (Number.isInteger(number) && number >= 1 && number <= choices.length)
+                    chosen = choices[number - 1]
+                }
+              }
+              if (!chosen) {
+                process.stderr.write(
+                  requested ? `Unknown coding model: ${requested}\n` : 'Canceled.\n',
+                )
+                task = ''
+                continue
+              }
+              selectedModel = chosen.ref
+              provider = accountProvider(accountApi, selectedModel)
+              if (session) {
+                session.model = selectedModel
+                await sessions.save(session)
+              }
+              process.stderr.write(`Model changed to ${chosen.displayName || chosen.modelId}.\n`)
               task = ''
               continue
             }
