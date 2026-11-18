@@ -3,7 +3,6 @@
 Code in local projects and work with your always-on AI agents from the terminal.
 
 ```bash
-npm i -g @ai-harness/cli        # (not published yet — see TASKS CLI-006)
 harness login                    # opens the browser to approve this device
 harness ask "สรุปข่าว AI วันนี้ 5 ข้อ"
 git diff | harness ask "review this diff"
@@ -13,6 +12,22 @@ harness agents run "News bot" "check the price of BTC" --wait
 harness approvals                # actions waiting for your OK
 harness balance && harness usage --days 7
 ```
+
+## Install
+
+Download the signed-off standalone build from the latest private GitHub release (GitHub access to
+this repository is required):
+
+```bash
+gh release download --repo bhumirath/ai-harness-cli-project --pattern 'harness-*'
+# Linux/macOS: choose the binary for your OS, then:
+chmod +x harness-0.2.0-*
+sudo install harness-0.2.0-* /usr/local/bin/harness
+```
+
+On Windows, rename the downloaded `.exe` to `harness.exe` and put it in a directory on `PATH`.
+The npm name `@ai-harness/cli` belongs to an unrelated package and must not be installed for this
+project.
 
 Every read command supports `--json`. Scripts/CI: `HARNESS_TOKEN=hk_… harness ask …`
 (create a token in the web app → Settings → CLI & tokens).
@@ -34,6 +49,9 @@ harness code "Fix the failing test and verify it" --cwd ./project --model <model
 
 # Interactive session (type /new or /exit)
 harness code --cwd ./project
+
+# Resume the private local transcript printed by the previous run
+harness code --cwd ./project --resume <session-id>
 
 # Keep simple line output (also selected automatically for pipes and --json)
 harness code --cwd ./project --plain
@@ -73,8 +91,10 @@ thinking status, tool activity, permission cards and a final files/token/cost su
 scrollback-friendly and strips terminal control sequences from model output. Use `--plain` to disable
 it; pipes and `--json` keep stable plain/machine output automatically.
 
-Task history is currently in memory. Persistent resume and provider token-by-token streaming are
-follow-up tasks. Once execution starts, JSON includes status,
+Coding transcripts are saved locally with private file permissions and can be continued using
+`--resume <session-id>`; use `--no-session` for an ephemeral run. API keys are never stored in the
+transcript. Both account and direct providers stream model text into the terminal while retaining
+validated, complete tool calls before local execution. Once execution starts, JSON includes status,
 summary/error, changed files and usage; configuration/auth failures before startup follow normal CLI
 stderr/exit behavior. The model's final answer is not a substitute for reviewing its changes/tests.
 Full contract and parallel-AI ownership: hub `docs/12-coding-cli.md` and `TASKS.md`.

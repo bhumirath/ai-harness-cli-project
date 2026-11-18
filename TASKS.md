@@ -210,9 +210,12 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-024 · Persistent coding sessions/resume
 
-- Status: IN_PROGRESS (codex, 2026-11-18)
+- Status: DONE (2026-11-18)
 - Depends on: CLI-022
 - Description: profile-local private transcripts, resume by id, no API keys in stored data.
+- Acceptance criteria:
+  - [x] Atomic mode-0600 transcripts, workspace/backend/model binding and traversal-safe ids.
+  - [x] `--resume <id>`, `--no-session`, JSON session id, `/new` reset and regression tests.
 
 ### CLI-025 · Coding terminal UI
 
@@ -225,7 +228,11 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-026 · Coding provider token streaming
 
-- Status: IN_PROGRESS (codex, 2026-11-18)
+- Status: DONE (2026-11-18)
 - Depends on: CLI-025, BE-097
 - Description: incremental model text/tool-call streaming behind the existing provider interface,
   including account and direct backends without weakening context or tool-call validation.
+- Acceptance criteria:
+  - [x] Direct OpenAI-compatible SSE text/tool-call assembly with response bounds and final validation.
+  - [x] Account SSE endpoint streams normalized deltas and returns authoritative usage/charge.
+  - [x] TUI/plain incremental rendering without duplicating the final model response.

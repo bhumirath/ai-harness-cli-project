@@ -19,7 +19,7 @@ export interface RunOptions {
   progress?: (event: ProgressEvent) => void
 }
 export interface ProgressEvent {
-  type: 'status' | 'text' | 'tool' | 'result'
+  type: 'status' | 'delta' | 'text' | 'tool' | 'result'
   text: string
   final?: boolean
 }
@@ -79,7 +79,11 @@ export async function codingRun(
       })
       messages.splice(0, messages.length, ...messages.map(sanitize))
       options.progress?.({ type: 'status', text: `Thinking · turn ${step + 1}` })
-      const turn = await provider.turn(messages, CODE_TOOLS, options.signal)
+      let streamed = false
+      const turn = await provider.turn(messages, CODE_TOOLS, options.signal, (text) => {
+        streamed = true
+        options.progress?.({ type: 'delta', text })
+      })
       turn.message = sanitize(turn.message)
       options.signal.throwIfAborted()
       result.steps++
@@ -93,11 +97,12 @@ export async function codingRun(
       messages.push(turn.message)
       if (turn.message.content) {
         result.summary = turn.message.content
-        options.progress?.({
-          type: 'text',
-          text: turn.message.content,
-          final: !turn.message.tool_calls?.length,
-        })
+        if (!streamed)
+          options.progress?.({
+            type: 'text',
+            text: turn.message.content,
+            final: !turn.message.tool_calls?.length,
+          })
       }
       const calls = turn.message.tool_calls ?? []
       if (!calls.length) {

@@ -440,16 +440,19 @@ async function modelServer(kind: 'harness' | 'direct') {
       }
       step++
       res.setHeader('content-type', 'application/json')
-      res.end(
-        JSON.stringify(
-          kind === 'harness'
-            ? turn(message)
-            : {
-                choices: [{ message, finish_reason: message.tool_calls ? 'tool_calls' : 'stop' }],
-                usage: { prompt_tokens: 10, completion_tokens: 5 },
-              },
-        ),
-      )
+      const payload =
+        kind === 'harness'
+          ? turn(message)
+          : {
+              choices: [{ message, finish_reason: message.tool_calls ? 'tool_calls' : 'stop' }],
+              usage: { prompt_tokens: 10, completion_tokens: 5 },
+            }
+      if (kind === 'harness' && req.url === '/api/coding/stream') {
+        res.setHeader('content-type', 'text/event-stream')
+        if (message.content)
+          res.write(`event: delta\ndata: ${JSON.stringify({ text: message.content })}\n\n`)
+        res.end(`event: done\ndata: ${JSON.stringify(payload)}\n\n`)
+      } else res.end(JSON.stringify(payload))
     })
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
@@ -460,6 +463,41 @@ async function modelServer(kind: 'harness' | 'direct') {
   }
 }
 describe('coding inspect/edit/test integration', () => {
+  it('streams direct-provider text deltas and returns the validated final turn', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/event-stream' })
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { role: 'assistant', content: 'Hello ' } }] })}\n\n`,
+      )
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: 'world' }, finish_reason: 'stop' }] })}\n\n`,
+      )
+      res.write(
+        `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 3, completion_tokens: 2 } })}\n\n`,
+      )
+      res.end('data: [DONE]\n\n')
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`
+    const deltas: string[] = []
+    try {
+      const result = await directProvider('model', url).turn(
+        [{ role: 'user', content: 'hello' }],
+        [],
+        signal(),
+        (text) => deltas.push(text),
+      )
+      expect(deltas).toEqual(['Hello ', 'world'])
+      expect(result).toMatchObject({
+        message: { role: 'assistant', content: 'Hello world' },
+        finishReason: 'stop',
+        usage: { inputTokens: 3, outputTokens: 2 },
+      })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
   it.each(['harness', 'direct'] as const)(
     'finishes a real fixture edit/test loop through %s',
     async (backend) => {

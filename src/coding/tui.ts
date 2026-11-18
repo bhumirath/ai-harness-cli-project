@@ -35,6 +35,7 @@ export class CodeTui {
   private spinner: NodeJS.Timeout | undefined
   private frame = 0
   private status = ''
+  private streaming = false
   private readonly output: TerminalOutput
 
   constructor(output: TerminalOutput) {
@@ -67,6 +68,15 @@ export class CodeTui {
       return
     }
     this.stopSpinner()
+    if (event.type === 'delta') {
+      this.streaming = true
+      this.output.write(clean(event.text))
+      return
+    }
+    if (this.streaming) {
+      this.output.write('\n')
+      this.streaming = false
+    }
     if (event.type === 'tool') {
       const space = event.text.indexOf(' ')
       const name = space === -1 ? event.text : event.text.slice(0, space)
