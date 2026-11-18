@@ -133,6 +133,10 @@ export class CodeTui {
     )
   }
 
+  finishTurn(): void {
+    this.stopSpinner()
+  }
+
   close(): void {
     this.stopSpinner()
   }

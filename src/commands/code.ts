@@ -354,14 +354,17 @@ export function registerCode(program: Command): void {
                 ...(session ? { sessionId: session.id } : {}),
               })
             else {
-              tui?.result(result)
+              if (interactive) tui?.finishTurn()
+              else tui?.result(result)
               if (result.error) process.stderr.write(`${stripVTControlCharacters(result.error)}\n`)
               if (!interactive && result.summary && !tui)
                 process.stdout.write(`${stripVTControlCharacters(result.summary)}\n`)
-              process.stderr.write(
-                `Status: ${result.status}; steps: ${result.steps}; files: ${result.changedFiles.join(', ') || '(none)'}\n`,
-              )
-              if (session) process.stderr.write(`Session: ${session.id}\n`)
+              if (!interactive) {
+                process.stderr.write(
+                  `Status: ${result.status}; steps: ${result.steps}; files: ${result.changedFiles.join(', ') || '(none)'}\n`,
+                )
+                if (session) process.stderr.write(`Session: ${session.id}\n`)
+              }
             }
             if (!interactive) {
               if (result.status !== 'completed') process.exitCode = result.exitCode ?? EXIT.error
