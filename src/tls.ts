@@ -1,5 +1,14 @@
+import { execFileSync } from 'node:child_process'
 import { rootCertificates } from 'node:tls'
-import { Agent, setGlobalDispatcher } from 'undici'
+import {
+  Agent,
+  fetch as undiciFetch,
+  FormData as UndiciFormData,
+  Headers as UndiciHeaders,
+  Request as UndiciRequest,
+  Response as UndiciResponse,
+  setGlobalDispatcher,
+} from 'undici'
 
 // ISRG Root YR cross-signed by the widely trusted ISRG Root X1. Some standalone Node builds do
 // not yet include the 2026 ISRG hierarchy even when the host browser does. Adding this public CA
@@ -42,6 +51,32 @@ yDFx8r7i9vIJU5HS3moZLkYWAOilMaV9N56A9Bgb6dNcHkvg3NoaYA==
 let configured = false
 export function configureTlsRoots(): void {
   if (configured) return
-  setGlobalDispatcher(new Agent({ connect: { ca: [...rootCertificates, ISRG_ROOT_YR] } }))
+  let systemCertificates = ''
+  if (process.platform === 'darwin') {
+    try {
+      // Node's bundled CA list does not include roots installed in macOS System/Login Keychains.
+      // `security` exports public certificates only; private keys and credentials are never read.
+      systemCertificates = execFileSync('security', ['find-certificate', '-a', '-p'], {
+        encoding: 'utf8',
+        maxBuffer: 16 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      })
+    } catch {
+      // The normal Node roots and bundled ISRG root remain available.
+    }
+  }
+  const dispatcher = new Agent({
+    connect: {
+      ca: [...rootCertificates, ISRG_ROOT_YR, ...(systemCertificates ? [systemCertificates] : [])],
+    },
+  })
+  setGlobalDispatcher(dispatcher)
+  // SEA builds can use Node's private bundled dispatcher for global fetch. Point it explicitly at
+  // the configured public undici implementation so macOS Keychain roots are always honored.
+  globalThis.Headers = UndiciHeaders as unknown as typeof globalThis.Headers
+  globalThis.Request = UndiciRequest as unknown as typeof globalThis.Request
+  globalThis.Response = UndiciResponse as unknown as typeof globalThis.Response
+  globalThis.FormData = UndiciFormData as unknown as typeof globalThis.FormData
+  globalThis.fetch = undiciFetch as unknown as typeof globalThis.fetch
   configured = true
 }
