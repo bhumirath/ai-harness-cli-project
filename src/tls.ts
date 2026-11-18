@@ -86,6 +86,7 @@ jjxDah2nGN59PRbxYvnKkKj9
 -----END CERTIFICATE-----`
 
 let configured = false
+let tlsDispatcher: Agent | undefined
 export function configureTlsRoots(): void {
   if (configured) return
   let systemCertificates = ''
@@ -102,7 +103,7 @@ export function configureTlsRoots(): void {
       // The normal Node roots and bundled ISRG root remain available.
     }
   }
-  const dispatcher = new Agent({
+  tlsDispatcher = new Agent({
     connect: {
       ca: [
         ...rootCertificates,
@@ -112,7 +113,7 @@ export function configureTlsRoots(): void {
       ],
     },
   })
-  setGlobalDispatcher(dispatcher)
+  setGlobalDispatcher(tlsDispatcher)
   // SEA builds can use Node's private bundled dispatcher for global fetch. Point it explicitly at
   // the configured public undici implementation so macOS Keychain roots are always honored.
   globalThis.Headers = UndiciHeaders as unknown as typeof globalThis.Headers
@@ -121,4 +122,16 @@ export function configureTlsRoots(): void {
   globalThis.FormData = UndiciFormData as unknown as typeof globalThis.FormData
   globalThis.fetch = undiciFetch as unknown as typeof globalThis.fetch
   configured = true
+}
+
+/** Uses the configured dispatcher explicitly, including in Node SEA builds. */
+export function tlsFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+  configureTlsRoots()
+  return undiciFetch(
+    input as Parameters<typeof undiciFetch>[0],
+    {
+      ...init,
+      dispatcher: tlsDispatcher,
+    } as Parameters<typeof undiciFetch>[1],
+  ) as unknown as Promise<Response>
 }

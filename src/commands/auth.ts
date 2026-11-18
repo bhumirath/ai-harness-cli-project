@@ -9,6 +9,7 @@ import { formatCredits, printJson } from '../output.ts'
 import { savedToken, saveLogin } from '../login-store.ts'
 import { deleteKeychainToken } from '../keychain.ts'
 import { openBrowser, sleep } from '../platform.ts'
+import { tlsFetch } from '../tls.ts'
 
 interface DeviceCode {
   deviceCode: string
@@ -25,7 +26,7 @@ export async function pollDeviceToken(
   dc: Pick<DeviceCode, 'deviceCode' | 'interval' | 'expiresIn'>,
   deps: { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void>; now?: () => number } = {},
 ): Promise<{ token: string; tokenInfo: { id: string; name: string } }> {
-  const doFetch = deps.fetch ?? fetch
+  const doFetch = deps.fetch ?? tlsFetch
   const wait = deps.sleep ?? sleep
   const now = deps.now ?? Date.now
   const deadline = now() + dc.expiresIn * 1000
@@ -94,7 +95,7 @@ export function registerAuth(program: Command): void {
 
         let res: Response
         try {
-          res = await fetch(`${settings.apiUrl}/api/auth/device/code`, {
+          res = await tlsFetch(`${settings.apiUrl}/api/auth/device/code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ clientName: `harness CLI on ${hostname()}`.slice(0, 80) }),
