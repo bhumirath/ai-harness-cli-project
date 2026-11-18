@@ -52,7 +52,7 @@ describe('coding terminal UI', () => {
     expect(rendered).toContain('/work/project')
     expect(rendered).toContain('read_file')
     expect(rendered).toContain('src/index.ts')
-    expect(rendered).toContain('Permission required')
+    expect(rendered).toContain('PERMISSION')
     expect(rendered).toContain('pnpm test')
     expect(rendered).toContain('Completed')
     expect(rendered).toContain('1,200 in / 300 out')

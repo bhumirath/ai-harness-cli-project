@@ -236,3 +236,42 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
   - [x] Direct OpenAI-compatible SSE text/tool-call assembly with response bounds and final validation.
   - [x] Account SSE endpoint streams normalized deltas and returns authoritative usage/charge.
   - [x] TUI/plain incremental rendering without duplicating the final model response.
+
+## MC3 — Microsoft Forms local automation
+
+Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-forms-agent.md`.
+
+### CLI-027 · Microsoft Forms native browser spike
+
+- Status: TODO
+- Description: validate visible Playwright inspection/fill/review on native macOS and Windows before
+  committing to a backend API. Microsoft credentials and browser profiles remain local.
+- Acceptance criteria:
+  - [ ] Inspect and fill supported question types in owned fixture forms; stop before Submit.
+  - [ ] Personal and work/school login, MFA/CAPTCHA handoff and form-change behavior documented.
+  - [ ] Native macOS and Windows demos/tests; no credential, cookie or answer leakage.
+
+### CLI-028 · Forms local runner and review workflow
+
+- Status: TODO
+- Depends on: CLI-027
+- Acceptance criteria:
+  - [ ] `forms inspect/run` semantic schema, mappings, fingerprint and visible review-before-submit.
+  - [ ] Persistent local browser profile, safe navigation/file rules and redacted audit evidence.
+  - [ ] Clear unsupported/headless errors and JSON for read commands.
+
+### CLI-029 · Forms scheduled runner
+
+- Status: TODO
+- Depends on: CLI-028, BE-099
+- Acceptance criteria:
+  - [ ] Paired runner receives idempotent scheduled work and reports durable run states.
+  - [ ] Native macOS/Windows start-at-login installation, pause/resume and missed-run behavior.
+
+### CLI-030 · Forms controlled auto-submit
+
+- Status: TODO
+- Depends on: CLI-029
+- Acceptance criteria:
+  - [ ] Explicit non-persistent auto-submit permission; changed schemas always pause.
+  - [ ] Duplicate and unknown-after-submit recovery; native end-to-end tests with owned forms.

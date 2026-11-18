@@ -47,19 +47,25 @@ export class CodeTui {
   }
 
   header(info: TuiHeader): void {
-    const title = `${pc.bold(pc.cyan('AI HARNESS'))}  ${pc.dim('coding agent')}`
-    this.box([
-      title,
-      `${pc.dim('workspace')}  ${compact(info.workspace, this.width() - 15)}`,
-      `${pc.dim('model')}      ${compact(info.model, this.width() - 15)}`,
-      `${pc.dim('backend')}    ${info.backend}    ${pc.dim('approval')}  ${info.approval}`,
+    const permission =
+      info.approval === 'prompt'
+        ? 'ask before changes'
+        : info.approval === 'read-only'
+          ? 'read only'
+          : 'auto approve'
+    this.panel(`${pc.bold('AI HARNESS')} ${pc.dim('· CODE')}`, [
+      `${pc.cyan('⌂')}  ${compact(info.workspace, this.width() - 8)}`,
+      `${pc.magenta('◇')}  ${compact(info.model, this.width() - 8)}`,
+      `${pc.green('●')}  ${info.backend}   ${pc.dim('·')}   ${permission}`,
     ])
-    this.output.write(`${pc.dim('Type /help for commands or press Tab for suggestions.')}\n`)
+    this.output.write(
+      `  ${pc.dim('/help')} commands   ${pc.dim('Tab')} suggestions   ${pc.dim('Ctrl+C')} cancel\n`,
+    )
   }
 
   prompt(): string {
     this.stopSpinner()
-    return `\n${pc.bold(pc.cyan('❯'))} `
+    return `\n${pc.bold(pc.cyan('harness'))} ${pc.bold('❯')} `
   }
 
   progress(event: ProgressEvent): void {
@@ -90,14 +96,19 @@ export class CodeTui {
       } catch {
         detail = compact(detail, this.width() - name.length - 10)
       }
-      this.output.write(
-        `${pc.magenta('◆')} ${pc.bold(name)}${detail ? `  ${pc.dim(detail)}` : ''}\n`,
-      )
+      const glyph = /^(read|list|search|git_diff)/.test(name)
+        ? pc.cyan('●')
+        : /^(write|edit|patch)/.test(name)
+          ? pc.yellow('◆')
+          : pc.magenta('▶')
+      this.output.write(`  ${glyph} ${pc.bold(name)}${detail ? `  ${pc.dim(detail)}` : ''}\n`)
       return
     }
     if (event.type === 'result') {
       const failed = event.text.includes(': done') ? false : event.text.includes(': ')
-      this.output.write(`${failed ? pc.red('×') : pc.green('✓')} ${pc.dim(compact(event.text))}\n`)
+      this.output.write(
+        `  ${failed ? pc.red('×') : pc.green('✓')} ${pc.dim(compact(event.text))}\n`,
+      )
       return
     }
     if (event.text.trim()) {
@@ -115,7 +126,11 @@ export class CodeTui {
       name === 'git_diff'
         ? 'workspace git diff (repository filters may execute)'
         : compact(args.command ?? args.path ?? args, this.width() - 6)
-    this.box([`${pc.yellow('Permission required')}  ${pc.bold(name)}`, pc.dim(detail)], pc.yellow)
+    this.panel(
+      `${pc.yellow('PERMISSION')} ${pc.dim('· review before continuing')}`,
+      [`${pc.bold(name)}`, pc.dim(detail)],
+      pc.yellow,
+    )
   }
 
   result(result: CodeResult): void {
@@ -176,5 +191,19 @@ export class CodeTui {
       this.output.write(`${color('│')} ${clipped}${' '.repeat(pad)} ${color('│')}\n`)
     }
     this.output.write(`${color('╰')}${edge}${color('╯')}\n`)
+  }
+
+  private panel(title: string, lines: string[], color: (text: string) => string = pc.cyan): void {
+    const width = this.width()
+    const visibleTitle = stripVTControlCharacters(title)
+    const remaining = Math.max(1, width - visibleTitle.length - 5)
+    this.output.write(`${color('╭─')} ${title} ${color('─'.repeat(remaining))}${color('╮')}\n`)
+    for (const line of lines) {
+      const visible = stripVTControlCharacters(line)
+      const clipped = visible.length > width - 4 ? `${visible.slice(0, width - 5)}…` : line
+      const pad = Math.max(0, width - 4 - stripVTControlCharacters(clipped).length)
+      this.output.write(`${color('│')} ${clipped}${' '.repeat(pad)} ${color('│')}\n`)
+    }
+    this.output.write(`${color('╰')}${color('─'.repeat(width - 2))}${color('╯')}\n`)
   }
 }
