@@ -210,7 +210,7 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-024 · Persistent coding sessions/resume
 
-- Status: TODO
+- Status: IN_PROGRESS (codex, 2026-11-18)
 - Depends on: CLI-022
 - Description: profile-local private transcripts, resume by id, no API keys in stored data.
 
@@ -225,7 +225,7 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-026 · Coding provider token streaming
 
-- Status: TODO
+- Status: IN_PROGRESS (codex, 2026-11-18)
 - Depends on: CLI-025, BE-097
 - Description: incremental model text/tool-call streaming behind the existing provider interface,
   including account and direct backends without weakening context or tool-call validation.
