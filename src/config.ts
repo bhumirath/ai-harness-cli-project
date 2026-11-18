@@ -17,7 +17,7 @@ export interface StoredConfig {
   agentId?: string
 }
 
-export const DEFAULT_API_URL = 'https://app.aiharness.example'
+export const DEFAULT_API_URL = 'https://119.10.143.23.sslip.io'
 
 export function configPath(env: NodeJS.ProcessEnv = process.env): string {
   if (env.HARNESS_CONFIG) return env.HARNESS_CONFIG
