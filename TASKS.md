@@ -214,6 +214,8 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-025 · Coding TUI and token streaming
 
-- Status: TODO
+- Status: IN_PROGRESS (codex, 2026-11-18)
 - Depends on: CLI-022
 - Description: richer terminal experience and incremental model text/tool-call streaming behind the existing provider interface.
+- Progress: implementing the vendor-style terminal UI first; provider token streaming remains the
+  second part of this task.
