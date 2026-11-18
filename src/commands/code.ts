@@ -1,6 +1,7 @@
 import { createInterface } from 'node:readline/promises'
 import type { Command } from 'commander'
 import { stripVTControlCharacters } from 'node:util'
+import pc from 'picocolors'
 import { apiFor, globals } from '../context.ts'
 import { unwrap } from '../api/client.ts'
 import { CliError, EXIT } from '../api/errors.ts'
@@ -8,7 +9,9 @@ import { printJson } from '../output.ts'
 import { accountProvider, directProvider } from '../coding/providers.ts'
 import { codingRun } from '../coding/loop.ts'
 import { WorkspaceTools } from '../coding/tools.ts'
+import { CodeTui } from '../coding/tui.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
+import type { ProgressEvent } from '../coding/loop.ts'
 
 export function registerCode(program: Command): void {
   program
@@ -25,6 +28,7 @@ export function registerCode(program: Command): void {
     )
     .option('--approval <mode>', 'prompt | auto | read-only', 'prompt')
     .option('--max-steps <n>', 'maximum model turns per task', '20')
+    .option('--plain', 'disable the interactive coding UI')
     .action(
       async (
         words: string[],
@@ -36,6 +40,7 @@ export function registerCode(program: Command): void {
           apiKeyEnv: string
           approval: string
           maxSteps: string
+          plain?: boolean
         },
         cmd: Command,
       ) => {
@@ -73,6 +78,7 @@ export function registerCode(program: Command): void {
           })
         }
         let provider: CodeProvider
+        let selectedModel: string
         if (opts.backend === 'direct') {
           const model = opts.model ?? process.env.HARNESS_CODE_MODEL
           if (!model)
@@ -80,6 +86,7 @@ export function registerCode(program: Command): void {
               exitCode: EXIT.usage,
             })
           workspace.protectCredentials([process.env[opts.apiKeyEnv]], [opts.apiKeyEnv])
+          selectedModel = model
           provider = directProvider(
             model,
             opts.baseUrl ?? process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
@@ -98,11 +105,23 @@ export function registerCode(program: Command): void {
               { exitCode: EXIT.usage },
             )
           workspace.protectCredentials([api.settings.token], ['HARNESS_TOKEN'])
+          selectedModel = model
           provider = accountProvider(api, model)
         }
-        process.stderr.write(
-          `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}\n`,
-        )
+        const tui = CodeTui.supported(process.stderr, json, Boolean(opts.plain))
+          ? new CodeTui(process.stderr)
+          : undefined
+        if (tui)
+          tui.header({
+            workspace: workspace.redact(workspace.root),
+            backend: opts.backend,
+            model: workspace.redact(selectedModel),
+            approval: opts.approval,
+          })
+        else
+          process.stderr.write(
+            `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}\n`,
+          )
         const messages: CodeMessage[] = [
           {
             role: 'system',
@@ -120,15 +139,12 @@ export function registerCode(program: Command): void {
         }
         process.on('SIGINT', interrupt)
         terminal?.on('SIGINT', interrupt)
-        const progress = ({
-          type,
-          text,
-          final,
-        }: {
-          type: string
-          text: string
-          final?: boolean
-        }) => {
+        const progress = ({ type, text, final }: ProgressEvent) => {
+          if (tui) {
+            tui.progress({ type, text: workspace.redact(text), final })
+            return
+          }
+          if (type === 'status') return
           if (final && !interactive && !json) return
           process.stderr.write(
             `${type === 'text' ? '' : '  '}${workspace.redact(stripVTControlCharacters(text))}\n`,
@@ -139,7 +155,7 @@ export function registerCode(program: Command): void {
           for (;;) {
             if (!task) {
               try {
-                task = (await terminal!.question('code › ')).trim()
+                task = (await terminal!.question(tui?.prompt() ?? 'code › ')).trim()
               } catch {
                 break
               }
@@ -160,24 +176,23 @@ export function registerCode(program: Command): void {
               approval: opts.approval as ApprovalMode,
               progress,
               confirm: terminal
-                ? async (name, args) =>
-                    /^y(es)?$/i.test(
-                      (
-                        await terminal.question(
-                          `Allow ${name === 'git_diff' ? 'workspace git diff (repository filters may execute)' : name} ${JSON.stringify(args)}? [y/N] `,
-                          {
-                            signal: current!.signal,
-                          },
-                        )
-                      ).trim(),
+                ? async (name, args) => {
+                    tui?.approval(name, args)
+                    const question = tui
+                      ? `${pc.bold('Allow?')} [y/N] `
+                      : `Allow ${name === 'git_diff' ? 'workspace git diff (repository filters may execute)' : name} ${JSON.stringify(args)}? [y/N] `
+                    return /^y(es)?$/i.test(
+                      (await terminal.question(question, { signal: current!.signal })).trim(),
                     )
+                  }
                 : undefined,
             })
             current = undefined
             if (json) printJson({ ...result, backend: opts.backend, cwd: workspace.root })
             else {
+              tui?.result(result)
               if (result.error) process.stderr.write(`${stripVTControlCharacters(result.error)}\n`)
-              if (!interactive && result.summary)
+              if (!interactive && result.summary && !tui)
                 process.stdout.write(`${stripVTControlCharacters(result.summary)}\n`)
               process.stderr.write(
                 `Status: ${result.status}; steps: ${result.steps}; files: ${result.changedFiles.join(', ') || '(none)'}\n`,
@@ -195,6 +210,7 @@ export function registerCode(program: Command): void {
           }
         } finally {
           process.off('SIGINT', interrupt)
+          tui?.close()
           terminal?.close()
         }
       },

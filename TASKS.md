@@ -157,14 +157,14 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-018 · PowerShell completion validation and argument transport
 
-- Status: IN_PROGRESS (codex, 2026-11-17) — Linux PowerShell passed; Windows cmd-shim CI execution pending
+- Status: DONE (2026-11-18)
 - Acceptance criteria:
   - [x] Test generated script through the real PowerShell completion engine.
-  - [ ] Quoted words and trailing empty arguments survive native/cmd-shim transport.
+  - [x] Quoted words and trailing empty arguments survive native/cmd-shim transport.
   - [x] Regression coverage and repeatable Docker/Windows CI smoke checks.
 - Progress: fixed quoted command/current words and added encoded argument transport. PowerShell
   7.4 on Linux passes quoted, empty and Thai words in Legacy/Standard/Windows argument modes.
-  Windows shim test is configured in CI but still needs GitHub authentication to run.
+  Windows shim and native binary checks passed in GitHub Actions run 44041626782.
 
 ## MC2 — Local coding agent (D-012)
 
@@ -172,8 +172,10 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 
 ### CLI-019 · Existing CI portability regressions
 
-- Status: IN_PROGRESS (codex, 2026-11-17)
-- Description: fix macOS ANSI-sensitive long-line test and Windows CRLF version check; inspect current CI logs. CRLF normalization, LF checkout policy and ANSI-insensitive assertion fixed; local forced-color/CRLF checks pass. Remote native CI verification pending.
+- Status: DONE (2026-11-18)
+- Description: fixed macOS ANSI-sensitive long-line test and Windows CRLF version check. CRLF
+  normalization, LF checkout policy and ANSI-insensitive assertion pass locally and in CI runs
+  44041579936 (matrix CI) and 44041626782 (native standalone binaries).
 
 ### CLI-020 · Local workspace coding tools
 
@@ -212,10 +214,18 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
 - Depends on: CLI-022
 - Description: profile-local private transcripts, resume by id, no API keys in stored data.
 
-### CLI-025 · Coding TUI and token streaming
+### CLI-025 · Coding terminal UI
 
-- Status: IN_PROGRESS (codex, 2026-11-18)
+- Status: DONE (2026-11-18)
 - Depends on: CLI-022
-- Description: richer terminal experience and incremental model text/tool-call streaming behind the existing provider interface.
-- Progress: implementing the vendor-style terminal UI first; provider token streaming remains the
-  second part of this task.
+- Description: vendor-style, keyboard-first coding UI while retaining stable plain and JSON modes.
+- Acceptance criteria:
+  - [x] TTY-only header, thinking state, tool/result rows, permission cards and final usage summary.
+  - [x] Safe model rendering, Ctrl+C compatibility, `--plain`, piped/JSON fallback and UI tests.
+
+### CLI-026 · Coding provider token streaming
+
+- Status: TODO
+- Depends on: CLI-025, BE-097
+- Description: incremental model text/tool-call streaming behind the existing provider interface,
+  including account and direct backends without weakening context or tool-call validation.

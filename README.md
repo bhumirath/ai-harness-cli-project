@@ -35,6 +35,9 @@ harness code "Fix the failing test and verify it" --cwd ./project --model <model
 # Interactive session (type /new or /exit)
 harness code --cwd ./project
 
+# Keep simple line output (also selected automatically for pipes and --json)
+harness code --cwd ./project --plain
+
 # Direct provider: SaaS login/keychain is not loaded
 export OPENAI_API_KEY=...
 harness code "Add pagination and test it" --cwd ./project --backend direct --model <model-id>
@@ -65,8 +68,13 @@ and the CLI's selected auth environment variable is not inherited by test/shell 
 project needs its own provider key for tests, use a separate variable for the coding agent key.
 This does not isolate shell commands from other credentials accessible to your OS user.
 
-This first coding mode has in-memory task history and per-step text/tool progress. Persistent resume
-and richer TUI/token streaming are follow-up tasks. Once execution starts, JSON includes status,
+On an interactive terminal, coding mode opens a keyboard-first UI with workspace/model details,
+thinking status, tool activity, permission cards and a final files/token/cost summary. It remains
+scrollback-friendly and strips terminal control sequences from model output. Use `--plain` to disable
+it; pipes and `--json` keep stable plain/machine output automatically.
+
+Task history is currently in memory. Persistent resume and provider token-by-token streaming are
+follow-up tasks. Once execution starts, JSON includes status,
 summary/error, changed files and usage; configuration/auth failures before startup follow normal CLI
 stderr/exit behavior. The model's final answer is not a substitute for reviewing its changes/tests.
 Full contract and parallel-AI ownership: hub `docs/12-coding-cli.md` and `TASKS.md`.

@@ -16,7 +16,12 @@ export interface RunOptions {
   signal: AbortSignal
   approval: ApprovalMode
   confirm?: (name: string, args: Record<string, unknown>) => Promise<boolean>
-  progress?: (event: { type: 'text' | 'tool' | 'result'; text: string; final?: boolean }) => void
+  progress?: (event: ProgressEvent) => void
+}
+export interface ProgressEvent {
+  type: 'status' | 'text' | 'tool' | 'result'
+  text: string
+  final?: boolean
 }
 export async function codingRun(
   provider: CodeProvider,
@@ -73,6 +78,7 @@ export async function codingRun(
           : {}),
       })
       messages.splice(0, messages.length, ...messages.map(sanitize))
+      options.progress?.({ type: 'status', text: `Thinking · turn ${step + 1}` })
       const turn = await provider.turn(messages, CODE_TOOLS, options.signal)
       turn.message = sanitize(turn.message)
       options.signal.throwIfAborted()
