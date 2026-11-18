@@ -15,8 +15,13 @@ harness balance && harness usage --days 7
 
 ## Install
 
-Download the signed-off standalone build from the latest private GitHub release (GitHub access to
-this repository is required):
+Apple Silicon macOS:
+
+```bash
+brew install bhumirath/ai-harness/harness
+```
+
+Or download a standalone build from the public GitHub release:
 
 ```bash
 gh release download --repo bhumirath/ai-harness-cli-project --pattern 'harness-*'
