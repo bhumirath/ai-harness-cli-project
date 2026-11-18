@@ -29,6 +29,27 @@ export function parseApprovalMode(value: string): ApprovalMode | undefined {
   return approvalModes.find((mode) => mode === value)
 }
 
+const slashCommands = ['/model', '/permission', '/approval', '/new', '/help', '/exit', '/quit']
+
+export function slashCompletions(line: string, models: CodingModel[] = []): string[] {
+  const candidates = line.startsWith('/model ')
+    ? models
+        .filter((model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId))
+        .flatMap((model) => [`/model ${model.modelId}`, `/model ${model.ref}`])
+    : line.startsWith('/permission ') || line.startsWith('/approval ')
+      ? approvalModes.map(
+          (mode) => `${line.startsWith('/approval ') ? '/approval' : '/permission'} ${mode}`,
+        )
+      : slashCommands
+  return [...new Set(candidates.filter((candidate) => candidate.startsWith(line)))]
+}
+
+function printSlashHelp(): void {
+  process.stderr.write(
+    `\nCommands:\n  /model              choose a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nTip: type part of a command and press Tab to complete it.\n`,
+  )
+}
+
 export function preferredCodingModel(models: CodingModel[]): CodingModel | undefined {
   const usable = models.filter(
     (model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId),
@@ -190,7 +211,14 @@ export function registerCode(program: Command): void {
         }
         const terminal =
           process.stdin.isTTY && !json
-            ? createInterface({ input: process.stdin, output: process.stderr })
+            ? createInterface({
+                input: process.stdin,
+                output: process.stderr,
+                completer: (line: string): [string[], string] => [
+                  slashCompletions(line, availableModels),
+                  line,
+                ],
+              })
             : undefined
         let current: AbortController | undefined
         const interrupt = () => {
@@ -226,6 +254,11 @@ export function registerCode(program: Command): void {
             }
             if (!task) continue
             if (interactive && (task === '/exit' || task === '/quit')) break
+            if (interactive && (task === '/' || task === '/help')) {
+              printSlashHelp()
+              task = ''
+              continue
+            }
             if (interactive && task === '/new') {
               messages.splice(1)
               workspace.changedFiles.clear()
@@ -318,6 +351,13 @@ export function registerCode(program: Command): void {
               opts.approval = chosen
               process.stderr.write(
                 `Permission changed to ${chosen}${chosen === 'auto' ? ' for this run only' : ''}.\n`,
+              )
+              task = ''
+              continue
+            }
+            if (interactive && task.startsWith('/')) {
+              process.stderr.write(
+                `Unknown command: ${task}. Type /help to see available commands.\n`,
               )
               task = ''
               continue

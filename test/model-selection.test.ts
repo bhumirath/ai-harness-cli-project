@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseApprovalMode, preferredCodingModel } from '../src/commands/code.ts'
+import { parseApprovalMode, preferredCodingModel, slashCompletions } from '../src/commands/code.ts'
 
 const model = (modelId: string, supportsTools = true) => ({
   ref: `byok:credential:${modelId}`,
@@ -29,5 +29,18 @@ describe('coding model selection', () => {
       preferredCodingModel([model('gpt-realtime'), model('gpt-audio'), model('gpt-5.3-codex')])
         ?.modelId,
     ).toBe('gpt-5.3-codex')
+  })
+})
+
+describe('coding slash command completion', () => {
+  it('suggests commands and permission values', () => {
+    expect(slashCompletions('/mo')).toEqual(['/model'])
+    expect(slashCompletions('/permission r')).toEqual(['/permission read-only'])
+  })
+
+  it('suggests only suitable coding models', () => {
+    expect(slashCompletions('/model gpt-', [model('gpt-audio'), model('gpt-4.1')])).toEqual([
+      '/model gpt-4.1',
+    ])
   })
 })
