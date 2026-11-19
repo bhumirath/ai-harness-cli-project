@@ -54,7 +54,7 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-006 · Packaging + release
 
-- Status: IN_PROGRESS (codex, 2026-11-16) — preparing release locally; registry/repository setup still needs O-10
+- Status: IN_PROGRESS — GitHub Release + Homebrew complete; npm intentionally disabled (O-10)
 - Description: npm org/scope `@ai-harness` (owner, O-10), `pnpm publish` from CI on tag, update
   notice, single-file binaries (Node SEA) for macOS/Windows/Linux, Homebrew/Scoop later.
 - Acceptance criteria:
@@ -63,8 +63,9 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   prepack build, CI package checks and tag-triggered OIDC release workflow ready. Nothing published.
   Owner created the GitHub repository on 2026-11-17; origin is configured. Needs GitHub
   authentication plus npm publishing access/bootstrap/trusted publisher (O-10).
-  Update notice implemented in CLI-014. Linux SEA built/tested in CLI-015; macOS/Windows
-  native workflow execution and registry publication remain pending.
+  Update notice implemented in CLI-014. SEA binaries for Linux/macOS/Windows are published in
+  GitHub Release v0.3.1 and Homebrew distribution is live. npm remains disabled because the
+  configured package name belongs to an unrelated project.
 
 ### CLI-007 · Nice to have
 
@@ -128,15 +129,14 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-015 · Standalone executable (from CLI-006)
 
-- Status: IN_PROGRESS (codex, 2026-11-16)
+- Status: DONE (2026-11-19)
 - Acceptance criteria:
   - [x] Build Node 22 SEA from bundled CLI on native Linux/macOS/Windows runners.
   - [x] Native Linux executable smoke-tested without node_modules; keychain unavailable errors stay safe.
-  - [ ] CI builds/smoke-tests each native platform and publishes downloadable artifacts.
+  - [x] CI builds/smoke-tests each native platform and publishes downloadable artifacts.
 
-- CLI-015 progress: Linux x64 binary built and smoke-tested with no node_modules or Node on PATH,
-  including authenticated HTTP and credential persistence. Native CI workflow + license/checksum
-  artifacts configured; macOS/Windows execution pending a Git remote and Actions run.
+- Verified by successful native workflow run 44438783340 and release v0.3.1: Linux x64, macOS
+  arm64 and Windows x64 binaries, SHA-256 checksums and per-platform license manifests.
 
 ### CLI-016 · Native Linux completion and keychain validation
 

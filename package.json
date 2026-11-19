@@ -28,7 +28,8 @@
     "build:sea": "node scripts/build-sea.mjs",
     "test:native:linux": "pnpm build && node scripts/test-native-linux.mjs",
     "test:native:powershell": "pnpm build && node scripts/test-native-linux.mjs --powershell",
-    "test:native:powershell:windows": "node scripts/test-native-powershell-windows.mjs"
+    "test:native:powershell:windows": "node scripts/test-native-powershell-windows.mjs",
+    "test:native:keychain": "node scripts/test-native-keychain.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.9.0",
