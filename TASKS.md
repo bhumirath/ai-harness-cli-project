@@ -73,8 +73,9 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: implemented history (CLI-009), completion (CLI-010), org picker (CLI-011), Markdown
-  (CLI-012) and keychain (CLI-013). Remaining validation: successful native keychain storage on
-  macOS/Windows, Windows PowerShell cmd-shim execution, and interactive Zsh ZLE behavior.
+  (CLI-012) and keychain (CLI-013). Native macOS Keychain and Windows Credential Manager
+  write/read/delete pass in CI run 44481066446; Windows PowerShell cmd-shim also passes. The only
+  remaining optional validation is interactive Zsh ZLE behavior.
   Linux Secret Service write/read/migration/logout and Bash/Zsh/Fish adapters pass (CLI-016);
   real PowerShell 7.4 on Linux also passes, including legacy argument passing (CLI-018).
 
