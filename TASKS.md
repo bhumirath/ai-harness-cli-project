@@ -69,13 +69,13 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
 
 ### CLI-007 · Nice to have
 
-- Status: IN_PROGRESS (codex, 2026-11-16) — features implemented; native platform validation pending
+- Status: DONE (2026-11-19)
 - Description: shell completion (`harness completion bash|zsh|fish|powershell`), OS keychain for the
   token, `harness chat` markdown rendering, `harness conversations ls|show`, `--org` picker.
 - Progress: implemented history (CLI-009), completion (CLI-010), org picker (CLI-011), Markdown
   (CLI-012) and keychain (CLI-013). Native macOS Keychain and Windows Credential Manager
-  write/read/delete pass in CI run 44481066446; Windows PowerShell cmd-shim also passes. The only
-  remaining optional validation is interactive Zsh ZLE behavior.
+  write/read/delete pass in CI run 44481066446; Windows PowerShell cmd-shim also passes. Interactive
+  Zsh ZLE validation now runs through a real pseudo-terminal in the native suite.
   Linux Secret Service write/read/migration/logout and Bash/Zsh/Fish adapters pass (CLI-016);
   real PowerShell 7.4 on Linux also passes, including legacy argument passing (CLI-018).
 

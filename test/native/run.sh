@@ -12,6 +12,7 @@ harness completion fish > "$native_tmp/completion.fish"
 export HARNESS_NATIVE_TMP="$native_tmp"
 bash test/native/bash.sh
 zsh -f test/native/zsh.zsh
+zsh -f test/native/zsh-zle.zsh
 fish test/native/fish.fish
 printf 'native completion checks passed\n'
 dbus-run-session -- bash test/native/keychain.sh
