@@ -237,13 +237,13 @@ Contract/parallel ownership: `../ai-harness-doc-project/docs/12-coding-cli.md`.
   - [x] Account SSE endpoint streams normalized deltas and returns authoritative usage/charge.
   - [x] TUI/plain incremental rendering without duplicating the final model response.
 
-## MC3 — Microsoft Forms local automation
+## MC3 — Microsoft Forms local automation (superseded)
 
 Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-forms-agent.md`.
 
 ### CLI-027 · Microsoft Forms native browser spike
 
-- Status: TODO
+- Status: CANCELED (2026-11-19) — superseded by hosted web worker D-013
 - Description: validate visible Playwright inspection/fill/review on native macOS and Windows before
   committing to a backend API. Microsoft credentials and browser profiles remain local.
 - Acceptance criteria:
@@ -253,7 +253,7 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
 
 ### CLI-028 · Forms local runner and review workflow
 
-- Status: TODO
+- Status: CANCELED (2026-11-19) — superseded by hosted web worker D-013
 - Depends on: CLI-027
 - Acceptance criteria:
   - [ ] `forms inspect/run` semantic schema, mappings, fingerprint and visible review-before-submit.
@@ -262,7 +262,7 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
 
 ### CLI-029 · Forms scheduled runner
 
-- Status: TODO
+- Status: CANCELED (2026-11-19) — superseded by hosted web worker D-013
 - Depends on: CLI-028, BE-099
 - Acceptance criteria:
   - [ ] Paired runner receives idempotent scheduled work and reports durable run states.
@@ -270,7 +270,7 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
 
 ### CLI-030 · Forms controlled auto-submit
 
-- Status: TODO
+- Status: CANCELED (2026-11-19) — superseded by hosted web worker D-013
 - Depends on: CLI-029
 - Acceptance criteria:
   - [ ] Explicit non-persistent auto-submit permission; changed schemas always pause.
