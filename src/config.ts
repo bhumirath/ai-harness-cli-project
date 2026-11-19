@@ -15,6 +15,8 @@ export interface StoredConfig {
   orgId?: string
   /** default agent for chat/ask */
   agentId?: string
+  /** default model for the local coding agent */
+  codeModel?: string
 }
 
 export const DEFAULT_API_URL = 'https://119.10.143.23.sslip.io'

@@ -40,10 +40,19 @@ describe('config', () => {
   it('saves with mode 0600 and resolves flags > env > file > default', () => {
     const dir = mkdtempSync(join(tmpdir(), 'harness-'))
     const path = join(dir, 'sub', 'config.json')
-    saveConfig({ apiUrl: 'https://file.example/', token: 'hk_file', orgId: 'o-file' }, path)
+    saveConfig(
+      {
+        apiUrl: 'https://file.example/',
+        token: 'hk_file',
+        orgId: 'o-file',
+        codeModel: 'byok:credential:gpt-5.3-codex',
+      },
+      path,
+    )
     if (process.platform !== 'win32') expect(statSync(path).mode & 0o777).toBe(0o600)
     const stored = loadConfig(path)
     expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual(stored)
+    expect(stored.codeModel).toBe('byok:credential:gpt-5.3-codex')
 
     expect(resolveSettings({}, {}, stored)).toMatchObject({
       apiUrl: 'https://file.example',

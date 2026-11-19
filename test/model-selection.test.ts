@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { parseApprovalMode, preferredCodingModel, slashCompletions } from '../src/commands/code.ts'
+import {
+  parseApprovalMode,
+  preferredCodingModel,
+  resolveCodingModel,
+  slashCompletions,
+} from '../src/commands/code.ts'
 
 const model = (modelId: string, supportsTools = true) => ({
   ref: `byok:credential:${modelId}`,
@@ -29,6 +34,16 @@ describe('coding model selection', () => {
       preferredCodingModel([model('gpt-realtime'), model('gpt-audio'), model('gpt-5.3-codex')])
         ?.modelId,
     ).toBe('gpt-5.3-codex')
+  })
+
+  it('reuses a saved model ref or id when it is still available', () => {
+    const models = [model('gpt-4.1'), model('gpt-5.3-codex')]
+    expect(resolveCodingModel(models, models[1]!.ref)?.modelId).toBe('gpt-5.3-codex')
+    expect(resolveCodingModel(models, 'gpt-5.3-codex')?.modelId).toBe('gpt-5.3-codex')
+  })
+
+  it('falls back safely when a saved model is no longer available', () => {
+    expect(resolveCodingModel([model('gpt-4.1')], 'removed-model')?.modelId).toBe('gpt-4.1')
   })
 })
 

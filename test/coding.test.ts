@@ -95,15 +95,14 @@ describe('workspace coding tools', () => {
     await writeFile(path.join(root, 'a.txt'), 'one\ntwo\n')
     const first = await workspace.execute('read_file', { path: 'a.txt' }, signal())
     expect(first.content).toContain('1: one')
-    expect(
-      (
-        await workspace.execute(
-          'edit_file',
-          { path: 'a.txt', oldText: 'two', newText: 'three' },
-          signal(),
-        )
-      ).ok,
-    ).toBe(true)
+    const edit = await workspace.execute(
+      'edit_file',
+      { path: 'a.txt', oldText: 'two', newText: 'three' },
+      signal(),
+    )
+    expect(edit.ok).toBe(true)
+    expect(edit.diff).toContain('-two')
+    expect(edit.diff).toContain('+three')
     expect(
       (
         await workspace.execute(

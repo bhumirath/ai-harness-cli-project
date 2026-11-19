@@ -35,9 +35,14 @@ describe('coding terminal UI', () => {
       backend: 'direct',
       model: 'test-model',
       approval: 'prompt',
+      session: '00000000-0000-4000-8000-000000000000',
     })
     ui.progress({ type: 'tool', text: 'read_file {"path":"src/index.ts"}' })
     ui.progress({ type: 'result', text: 'read_file: done' })
+    ui.progress({
+      type: 'diff',
+      text: '--- a/src/index.ts\n+++ b/src/index.ts\n@@ -1,1 +1,1 @@\n-old\n+new',
+    })
     ui.approval('run_command', { command: 'pnpm test' })
     ui.progress({ type: 'text', text: '**Fixed** the failing test.', final: true })
     ui.result({
@@ -50,8 +55,12 @@ describe('coding terminal UI', () => {
     const rendered = out.text()
     expect(rendered).toContain('AI HARNESS')
     expect(rendered).toContain('/work/project')
+    expect(rendered).toContain('session 00000000-0000-4000-8000-000000000000')
     expect(rendered).toContain('read_file')
     expect(rendered).toContain('src/index.ts')
+    expect(rendered).toContain('Changes')
+    expect(rendered).toContain('-old')
+    expect(rendered).toContain('+new')
     expect(rendered).toContain('PERMISSION')
     expect(rendered).toContain('pnpm test')
     expect(rendered).toContain('Completed')

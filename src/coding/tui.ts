@@ -15,6 +15,7 @@ export interface TuiHeader {
   backend: string
   model: string
   approval: string
+  session?: string
 }
 
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -57,6 +58,7 @@ export class CodeTui {
       `${pc.cyan('⌂')}  ${compact(info.workspace, this.width() - 8)}`,
       `${pc.magenta('◇')}  ${compact(info.model, this.width() - 8)}`,
       `${pc.green('●')}  ${info.backend}   ${pc.dim('·')}   ${permission}`,
+      ...(info.session ? [`${pc.blue('◫')}  session ${compact(info.session, 36)}`] : []),
     ])
     this.output.write(
       `  ${pc.dim('/help')} commands   ${pc.dim('Tab')} suggestions   ${pc.dim('Ctrl+C')} cancel\n`,
@@ -109,6 +111,18 @@ export class CodeTui {
       this.output.write(
         `  ${failed ? pc.red('×') : pc.green('✓')} ${pc.dim(compact(event.text))}\n`,
       )
+      return
+    }
+    if (event.type === 'diff') {
+      this.output.write(`${pc.bold('  Changes')}\n`)
+      for (const line of clean(event.text).split('\n')) {
+        const rendered = line.startsWith('+')
+          ? pc.green(line)
+          : line.startsWith('-')
+            ? pc.red(line)
+            : pc.dim(line)
+        this.output.write(`  ${rendered}\n`)
+      }
       return
     }
     if (event.text.trim()) {

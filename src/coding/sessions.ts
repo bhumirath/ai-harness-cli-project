@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { configPath } from '../config.ts'
 import type { CodeMessage } from './types.ts'
@@ -57,6 +57,24 @@ export class SessionStore {
     )
       throw new Error('Invalid coding session')
     return value as CodingSession
+  }
+
+  async list(): Promise<CodingSession[]> {
+    let names: string[]
+    try {
+      names = await readdir(this.directory)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+      throw error
+    }
+    const sessions = await Promise.all(
+      names
+        .filter((name) => name.endsWith('.json') && validId(name.slice(0, -5)))
+        .map((name) => this.load(name.slice(0, -5)).catch(() => undefined)),
+    )
+    return sessions
+      .filter((session): session is CodingSession => Boolean(session))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }
 
   async save(session: CodingSession): Promise<void> {

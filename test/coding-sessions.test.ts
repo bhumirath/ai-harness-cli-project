@@ -28,6 +28,7 @@ describe('private coding sessions', () => {
       model: 'model',
     })
     expect(loaded.messages).toHaveLength(2)
+    expect((await store.list()).map((item) => item.id)).toEqual([session.id])
     if (process.platform !== 'win32')
       expect((await stat(path.join(root, 'sessions', `${session.id}.json`))).mode & 0o777).toBe(
         0o600,
@@ -44,5 +45,6 @@ describe('private coding sessions', () => {
     const store = new SessionStore(path.join(root, 'sessions'))
     await expect(store.load('../../secret')).rejects.toThrow('Invalid coding session id')
     await expect(store.load('00000000-0000-4000-8000-000000000000')).rejects.toThrow('not found')
+    expect(await new SessionStore(path.join(root, 'missing')).list()).toEqual([])
   })
 })

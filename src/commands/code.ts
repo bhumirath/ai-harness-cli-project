@@ -13,6 +13,7 @@ import { CodeTui } from '../coding/tui.ts'
 import { SessionStore, type CodingSession } from '../coding/sessions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
 import type { ProgressEvent } from '../coding/loop.ts'
+import { loadConfig, saveConfig } from '../config.ts'
 
 type CodingModel = {
   ref: string
@@ -29,7 +30,18 @@ export function parseApprovalMode(value: string): ApprovalMode | undefined {
   return approvalModes.find((mode) => mode === value)
 }
 
-const slashCommands = ['/model', '/permission', '/approval', '/new', '/help', '/exit', '/quit']
+const slashCommands = [
+  '/model',
+  '/permission',
+  '/approval',
+  '/session',
+  '/sessions',
+  '/diff',
+  '/new',
+  '/help',
+  '/exit',
+  '/quit',
+]
 
 export function slashCompletions(line: string, models: CodingModel[] = []): string[] {
   const candidates = line.startsWith('/model ')
@@ -46,7 +58,7 @@ export function slashCompletions(line: string, models: CodingModel[] = []): stri
 
 function printSlashHelp(): void {
   process.stderr.write(
-    `\nCommands:\n  /model              choose a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nTip: type part of a command and press Tab to complete it.\n`,
+    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
   )
 }
 
@@ -59,6 +71,20 @@ export function preferredCodingModel(models: CodingModel[]): CodingModel | undef
     usable.find((model) => /codex/i.test(model.modelId)) ??
     usable[0]
   )
+}
+
+export function resolveCodingModel(
+  models: CodingModel[],
+  requested?: string,
+): CodingModel | undefined {
+  const usable = models.filter(
+    (model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId),
+  )
+  if (requested) {
+    const match = usable.find((model) => model.ref === requested || model.modelId === requested)
+    if (match) return match
+  }
+  return preferredCodingModel(usable)
 }
 
 export function registerCode(program: Command): void {
@@ -169,8 +195,10 @@ export function registerCode(program: Command): void {
           const api = apiFor(cmd)
           accountApi = api
           availableModels = await unwrap(api.client.GET('/api/models'), api.settings.apiUrl)
-          let model = opts.model
-          if (!model) model = preferredCodingModel(availableModels)?.ref
+          const stored = loadConfig()
+          const requested = opts.model ?? process.env.HARNESS_CODE_MODEL ?? stored.codeModel
+          const resolved = resolveCodingModel(availableModels, requested)
+          let model = opts.model ?? process.env.HARNESS_CODE_MODEL ?? resolved?.ref
           if (!model)
             throw new CliError(
               'No tool-capable model is available; configure a model in AI Harness',
@@ -180,20 +208,6 @@ export function registerCode(program: Command): void {
           selectedModel = model
           provider = accountProvider(api, model)
         }
-        const tui = CodeTui.supported(process.stderr, json, Boolean(opts.plain))
-          ? new CodeTui(process.stderr)
-          : undefined
-        if (tui)
-          tui.header({
-            workspace: workspace.redact(workspace.root),
-            backend: opts.backend,
-            model: workspace.redact(selectedModel),
-            approval: opts.approval,
-          })
-        else
-          process.stderr.write(
-            `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}\n`,
-          )
         const messages: CodeMessage[] = [
           {
             role: 'system',
@@ -209,6 +223,21 @@ export function registerCode(program: Command): void {
             selectedModel,
           )
         }
+        const tui = CodeTui.supported(process.stderr, json, Boolean(opts.plain))
+          ? new CodeTui(process.stderr)
+          : undefined
+        if (tui)
+          tui.header({
+            workspace: workspace.redact(workspace.root),
+            backend: opts.backend,
+            model: workspace.redact(selectedModel),
+            approval: opts.approval,
+            session: session?.id,
+          })
+        else
+          process.stderr.write(
+            `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}${session ? `; session: ${session.id}` : ''}\n`,
+          )
         const terminal =
           process.stdin.isTTY && !json
             ? createInterface({
@@ -269,6 +298,45 @@ export function registerCode(program: Command): void {
               task = ''
               continue
             }
+            if (interactive && task === '/session') {
+              process.stderr.write(
+                session
+                  ? `Session: ${session.id}\nResume: harness code --resume ${session.id}\n`
+                  : 'Session saving is disabled for this run.\n',
+              )
+              task = ''
+              continue
+            }
+            if (interactive && task === '/sessions') {
+              const saved = await sessions.list()
+              if (!saved.length) process.stderr.write('No saved coding sessions yet.\n')
+              else {
+                process.stderr.write('\nSaved coding sessions:\n')
+                for (const item of saved.slice(0, 20))
+                  process.stderr.write(
+                    `  ${item.id}${item.id === session?.id ? ' (current)' : ''} · ${item.backend} · ${workspace.redact(item.model)} · ${workspace.redact(item.cwd)}\n`,
+                  )
+                process.stderr.write('\nResume with: harness code --resume <session-id>\n')
+              }
+              task = ''
+              continue
+            }
+            if (interactive && task === '/diff') {
+              let allowed = opts.approval === 'auto'
+              if (opts.approval === 'prompt') {
+                tui?.approval('git_diff', {})
+                allowed = /^y(es)?$/i.test((await terminal!.question('Allow? [y/N] ')).trim())
+              }
+              if (!allowed) process.stderr.write('Workspace diff denied by permission policy.\n')
+              else {
+                const diff = await workspace.execute('git_diff', {}, new AbortController().signal)
+                if (!diff.ok)
+                  process.stderr.write(`Cannot read diff: ${String(diff.stderr ?? diff.error)}\n`)
+                else process.stderr.write(`${String(diff.stdout || 'No workspace changes.')}\n`)
+              }
+              task = ''
+              continue
+            }
             if (interactive && (task === '/model' || task.startsWith('/model '))) {
               if (!accountApi) {
                 process.stderr.write(
@@ -314,11 +382,15 @@ export function registerCode(program: Command): void {
               }
               selectedModel = chosen.ref
               provider = accountProvider(accountApi, selectedModel)
+              const stored = loadConfig()
+              saveConfig({ ...stored, codeModel: selectedModel })
               if (session) {
                 session.model = selectedModel
                 await sessions.save(session)
               }
-              process.stderr.write(`Model changed to ${chosen.displayName || chosen.modelId}.\n`)
+              process.stderr.write(
+                `Model changed to ${chosen.displayName || chosen.modelId} and saved as the default.\n`,
+              )
               task = ''
               continue
             }

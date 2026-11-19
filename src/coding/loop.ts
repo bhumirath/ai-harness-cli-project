@@ -19,7 +19,7 @@ export interface RunOptions {
   progress?: (event: ProgressEvent) => void
 }
 export interface ProgressEvent {
-  type: 'status' | 'delta' | 'text' | 'tool' | 'result'
+  type: 'status' | 'delta' | 'text' | 'tool' | 'result' | 'diff'
   text: string
   final?: boolean
 }
@@ -159,6 +159,8 @@ export async function codingRun(
             ? `${call.function.name}: done`
             : `${call.function.name}: ${String(output.error)}`,
         })
+        if (output.ok && typeof output.diff === 'string')
+          options.progress?.({ type: 'diff', text: output.diff })
         const serialized = workspace.stringify(output)
         messages.push({
           role: 'tool',

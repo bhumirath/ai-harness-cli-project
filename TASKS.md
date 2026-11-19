@@ -275,3 +275,23 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
 - Acceptance criteria:
   - [ ] Explicit non-persistent auto-submit permission; changed schemas always pause.
   - [ ] Duplicate and unknown-after-submit recovery; native end-to-end tests with owned forms.
+
+## MC4 — Coding CLI follow-ups
+
+### CLI-031 · Remember the selected coding model
+
+- Status: DONE (2026-11-19)
+- Depends on: CLI-022
+- Acceptance criteria:
+  - [x] `/model` saves the selected account model as the machine's coding default.
+  - [x] New `harness code` sessions reuse the saved model when it remains available.
+  - [x] Flags and environment variables retain precedence; removed models fall back safely.
+
+### CLI-032 · Visible edits and discoverable coding sessions
+
+- Status: DONE (2026-11-19)
+- Depends on: CLI-024, CLI-025
+- Acceptance criteria:
+  - [x] Successful file edits stream a bounded redacted `-`/`+` diff in rich and plain modes.
+  - [x] The header shows the active session; `/session` and `/sessions` expose resume instructions.
+  - [x] `/diff` shows the bounded workspace Git diff under the existing permission policy.

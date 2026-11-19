@@ -20,6 +20,7 @@ const SKIP = new Set([
 ])
 const MAX_FILE = 1_000_000
 const MAX_OUTPUT = 32_000
+const MAX_DIFF_LINES = 80
 const sha = (data: Uint8Array | string) => createHash('sha256').update(data).digest('hex')
 const string = (args: Record<string, unknown>, name: string) => {
   if (typeof args[name] !== 'string') throw new Error(`${name} must be a string`)
@@ -30,6 +31,31 @@ const integer = (value: unknown, fallback: number, max: number) => {
   if (!Number.isInteger(value) || (value as number) < 1 || (value as number) > max)
     throw new Error(`Expected an integer from 1 to ${max}`)
   return value as number
+}
+function diffPreview(file: string, before: string, after: string): string {
+  const oldLines = before.split('\n')
+  const newLines = after.split('\n')
+  let start = 0
+  while (start < oldLines.length && start < newLines.length && oldLines[start] === newLines[start])
+    start++
+  let oldEnd = oldLines.length
+  let newEnd = newLines.length
+  while (oldEnd > start && newEnd > start && oldLines[oldEnd - 1] === newLines[newEnd - 1]) {
+    oldEnd--
+    newEnd--
+  }
+  const removed = oldLines.slice(start, oldEnd).map((line) => `-${line}`)
+  const added = newLines.slice(start, newEnd).map((line) => `+${line}`)
+  const changed = [...removed, ...added]
+  const visible = changed.slice(0, MAX_DIFF_LINES)
+  if (changed.length > visible.length)
+    visible.push(`… ${changed.length - visible.length} more changed lines`)
+  return [
+    `--- a/${file}`,
+    `+++ b/${file}`,
+    `@@ -${start + 1},${removed.length} +${start + 1},${added.length} @@`,
+    ...visible,
+  ].join('\n')
 }
 const definition = (
   name: string,
@@ -395,6 +421,12 @@ export class WorkspaceTools {
           error: 'Read and follow these project instructions, then retry the edit',
           instructions,
         }
+      let before = ''
+      try {
+        before = (await this.read(file)).content
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
       if (name === 'write_file') {
         const content = string(args, 'content')
         const expected = args.expectedHash === undefined ? undefined : string(args, 'expectedHash')
@@ -414,7 +446,14 @@ export class WorkspaceTools {
           true,
         )
       }
-      return { ok: true, path: path.relative(this.root, file), hash: (await this.read(file)).hash }
+      const relative = path.relative(this.root, file)
+      const updated = await this.read(file)
+      return {
+        ok: true,
+        path: relative,
+        hash: updated.hash,
+        diff: diffPreview(relative, before, updated.content),
+      }
     } catch (error) {
       signal.throwIfAborted()
       return { ok: false, error: error instanceof Error ? error.message : 'Coding tool failed' }
