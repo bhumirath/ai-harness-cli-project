@@ -57,6 +57,53 @@ function diffPreview(file: string, before: string, after: string): string {
     ...visible,
   ].join('\n')
 }
+function applyTextPatch(content: string, rawPatch: string, expectedPath: string): string {
+  if (!rawPatch.trim() || rawPatch.length > 200_000 || rawPatch.includes('\0'))
+    throw new Error('Patch must be 1..200000 characters of text')
+  const newline = content.includes('\r\n') ? '\r\n' : '\n'
+  const lines = rawPatch.replaceAll('\r\n', '\n').split('\n')
+  if (lines[0]?.trim() === '*** Begin Patch') lines.shift()
+  if (lines.at(-1)?.trim() === '*** End Patch') lines.pop()
+  if (lines.at(-1) === '') lines.pop()
+  if (lines[0]?.startsWith('*** Update File:')) {
+    const declared = lines.shift()!.slice('*** Update File:'.length).trim().replaceAll('\\', '/')
+    if (declared !== expectedPath.replaceAll('\\', '/'))
+      throw new Error('Patch path does not match path argument')
+  }
+  const hunks: { before: string[]; after: string[] }[] = []
+  let hunk: { before: string[]; after: string[] } | undefined
+  for (const line of lines) {
+    if (line.startsWith('@@')) {
+      hunk = { before: [], after: [] }
+      hunks.push(hunk)
+      continue
+    }
+    if (!hunk) throw new Error('Patch must start with an @@ hunk header')
+    if (line === '\\ No newline at end of file') continue
+    const marker = line[0]
+    if (![' ', '+', '-'].includes(marker ?? ''))
+      throw new Error('Each patch line must start with space, +, or -')
+    const value = line.slice(1)
+    if (marker !== '+') hunk.before.push(value)
+    if (marker !== '-') hunk.after.push(value)
+  }
+  if (!hunks.length || hunks.some((item) => item.before.length === 0))
+    throw new Error('Patch needs at least one context or removed line per hunk')
+  const output = content.split(/\r?\n/)
+  for (const item of hunks) {
+    const matches: number[] = []
+    for (let index = 0; index <= output.length - item.before.length; index++)
+      if (item.before.every((line, offset) => output[index + offset] === line)) matches.push(index)
+    if (matches.length !== 1)
+      throw new Error(
+        matches.length === 0
+          ? 'Patch context was not found; read the file again'
+          : 'Patch context is ambiguous; include more surrounding lines',
+      )
+    output.splice(matches[0]!, item.before.length, ...item.after)
+  }
+  return output.join(newline)
+}
 const definition = (
   name: string,
   description: string,
@@ -103,6 +150,12 @@ export const CODE_TOOLS: CodeTool[] = [
     ['path', 'oldText', 'newText'],
   ),
   definition(
+    'apply_patch',
+    'Safely apply one or more line hunks to an existing text file after read_file. Use patch lines prefixed with space (context), - (remove), or + (add), and start every hunk with @@. This is preferred for focused code edits.',
+    { path: text, expectedHash: text, patch: text },
+    ['path', 'expectedHash', 'patch'],
+  ),
+  definition(
     'run_command',
     'Run a shell command in the workspace after permission. Inspect exitCode/output and fix failures.',
     { command: text, timeoutMs: { ...number, maximum: 120000 } },
@@ -114,7 +167,13 @@ export const CODE_TOOLS: CodeTool[] = [
     {},
   ),
 ]
-export const MUTATING_TOOLS = new Set(['write_file', 'edit_file', 'run_command', 'git_diff'])
+export const MUTATING_TOOLS = new Set([
+  'write_file',
+  'edit_file',
+  'apply_patch',
+  'run_command',
+  'git_diff',
+])
 
 export class WorkspaceTools {
   readonly root: string
@@ -431,6 +490,18 @@ export class WorkspaceTools {
         const content = string(args, 'content')
         const expected = args.expectedHash === undefined ? undefined : string(args, 'expectedHash')
         await this.replace(file, content, expected)
+      } else if (name === 'apply_patch') {
+        const expected = string(args, 'expectedHash')
+        const current = await this.read(file)
+        if (current.hash !== expected)
+          throw new Error('File changed since read_file; read it again before applying a patch')
+        const updated = applyTextPatch(
+          current.content,
+          string(args, 'patch'),
+          path.relative(this.root, file),
+        )
+        if (updated === current.content) throw new Error('Patch does not change the file')
+        await this.replace(file, updated, current.hash, true)
       } else {
         const oldText = string(args, 'oldText')
         const newText = string(args, 'newText')

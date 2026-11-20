@@ -66,6 +66,20 @@ describe('workspace coding tools', () => {
         )
       ).ok,
     ).toBe(true)
+    const afterEdit = await workspace.execute('read_file', { path: 'config.txt' }, signal())
+    expect(
+      (
+        await workspace.execute(
+          'apply_patch',
+          {
+            path: 'config.txt',
+            expectedHash: afterEdit.hash,
+            patch: '@@\n-value=new\n+value=newer',
+          },
+          signal(),
+        )
+      ).ok,
+    ).toBe(true)
     expect(await readFile(path.join(root, 'config.txt'), 'utf8')).toContain(secret)
     const command = await workspace.execute(
       'run_command',
@@ -126,6 +140,51 @@ describe('workspace coding tools', () => {
       ).ok,
     ).toBe(false)
   })
+  it('applies multiple optimistic context hunks and rejects stale or ambiguous patches', async () => {
+    const { root, workspace } = await fixture()
+    await writeFile(
+      path.join(root, 'app.ts'),
+      'const first = 1\nconst middle = 2\nconst last = 3\n',
+    )
+    const read = await workspace.execute('read_file', { path: 'app.ts' }, signal())
+    const applied = await workspace.execute(
+      'apply_patch',
+      {
+        path: 'app.ts',
+        expectedHash: read.hash,
+        patch:
+          '*** Begin Patch\n*** Update File: app.ts\n@@\n-const first = 1\n+const first = 10\n@@\n-const last = 3\n+const last = 30\n*** End Patch',
+      },
+      signal(),
+    )
+    expect(applied.ok).toBe(true)
+    expect(applied.diff).toContain('+const first = 10')
+    expect(await readFile(path.join(root, 'app.ts'), 'utf8')).toBe(
+      'const first = 10\nconst middle = 2\nconst last = 30\n',
+    )
+
+    const stale = await workspace.execute(
+      'apply_patch',
+      {
+        path: 'app.ts',
+        expectedHash: read.hash,
+        patch: '@@\n-const middle = 2\n+const middle = 20',
+      },
+      signal(),
+    )
+    expect(stale.ok).toBe(false)
+    expect(stale.error).toContain('changed since read_file')
+
+    await writeFile(path.join(root, 'repeat.txt'), 'same\nsame\n')
+    const repeated = await workspace.execute('read_file', { path: 'repeat.txt' }, signal())
+    const ambiguous = await workspace.execute(
+      'apply_patch',
+      { path: 'repeat.txt', expectedHash: repeated.hash, patch: '@@\n-same\n+changed' },
+      signal(),
+    )
+    expect(ambiguous.ok).toBe(false)
+    expect(ambiguous.error).toContain('ambiguous')
+  })
   it('refuses traversal, symlink escape, Git metadata, secrets and binary files', async () => {
     const { root, workspace } = await fixture()
     const outside = await fixture()
@@ -147,6 +206,15 @@ describe('workspace coding tools', () => {
     expect(
       (await workspace.execute('write_file', { path: 'escape/new.txt', content: 'bad' }, signal()))
         .ok,
+    ).toBe(false)
+    expect(
+      (
+        await workspace.execute(
+          'apply_patch',
+          { path: 'escape/private.txt', expectedHash: 'fake', patch: '@@\n-outside\n+bad' },
+          signal(),
+        )
+      ).ok,
     ).toBe(false)
     await expect(access(path.join(outside.root, 'new.txt'))).rejects.toThrow()
     expect(
@@ -423,9 +491,19 @@ async function modelServer(kind: 'harness' | 'direct') {
       received.push({ body, auth: req.headers.authorization })
       let message: CodeMessage
       if (step === 0) message = call('read_file', { path: 'sum.mjs' })
-      else if (step === 1)
-        message = call('edit_file', { path: 'sum.mjs', oldText: 'a - b', newText: 'a + b' }, 'edit')
-      else if (step === 2) message = call('run_command', { command: 'node test.mjs' }, 'test')
+      else if (step === 1) {
+        const messages = body.messages as CodeMessage[]
+        const read = JSON.parse(messages.at(-1)!.content!) as { hash: string }
+        message = call(
+          'apply_patch',
+          {
+            path: 'sum.mjs',
+            expectedHash: read.hash,
+            patch: '@@\n-export const add = (a, b) => a - b\n+export const add = (a, b) => a + b',
+          },
+          'patch',
+        )
+      } else if (step === 2) message = call('run_command', { command: 'node test.mjs' }, 'test')
       else {
         const messages = body.messages as CodeMessage[]
         const result = JSON.parse(messages.at(-1)!.content!) as { ok: boolean; exitCode: number }

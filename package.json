@@ -1,6 +1,6 @@
 {
   "name": "@ai-harness/cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "AI Harness — local coding agent and always-on agent CLI",
   "license": "UNLICENSED",
   "type": "module",

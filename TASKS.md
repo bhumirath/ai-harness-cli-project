@@ -296,3 +296,12 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
   - [x] Successful file edits stream a bounded redacted `-`/`+` diff in rich and plain modes.
   - [x] The header shows the active session; `/session` and `/sessions` expose resume instructions.
   - [x] `/diff` shows the bounded workspace Git diff under the existing permission policy.
+
+### CLI-033 · Reliable patch-based code editing
+
+- Status: DONE (2026-11-20)
+- Depends on: CLI-020, CLI-022
+- Acceptance criteria:
+  - [x] Context-hunk `apply_patch` tool supports focused multi-hunk edits with optimistic hashes.
+  - [x] Traversal, stale files, ambiguous context, secrets and project instructions remain protected.
+  - [x] Coding prompt drives inspect/edit/verify behavior and both provider adapters pass integration tests.
