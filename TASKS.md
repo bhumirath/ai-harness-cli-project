@@ -421,3 +421,13 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
   - [x] The check is an ordinary command: it needs command permission (ask by default, "always"
         grant for the exact command, auto with `--yes`); a denial skips it for the rest of the run.
   - [x] Integration tests for diagnostics delivery and denial.
+
+### CLI-041 · Resume restores agent mode and plan
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-024, CLI-034, CLI-035
+- Acceptance criteria:
+  - [x] Saved sessions store the active agent (`build`/`plan`) and the latest `todo_write` plan;
+        `--resume` restores both unless `--agent` is given; `/new` clears the plan.
+  - [x] Older session files without these fields still load; invalid values are ignored.
+  - [x] Integration test resuming a plan-mode session.

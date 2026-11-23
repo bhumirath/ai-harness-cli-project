@@ -290,4 +290,26 @@ describe('non-interactive coding runs', () => {
     expect(notices).toEqual(['Post-edit check skipped for this run.'])
     expect(JSON.stringify(messages)).not.toContain('diagnostics')
   })
+
+  it('restores the agent mode and plan when resuming a saved session', async () => {
+    const model = await scriptedModel([
+      () => call('todo_write', { todos: [{ content: 'Step one', status: 'pending' }] }, 't1'),
+      () => ({ role: 'assistant', content: 'Planned.' }),
+      () => ({ role: 'assistant', content: 'Resumed.' }),
+    ])
+    const { invoke } = await run(['code'])
+    const common = ['--backend', 'direct', '--base-url', model.url, '--model', 'mock', '--json']
+    const first = await invoke(['-p', 'plan', '--agent', 'plan', '--yes', ...common])
+    const { sessionId } = JSON.parse(first.stdout())
+    expect(sessionId).toBeTruthy()
+    const before = first.stdout().length
+    const second = await invoke(['-p', 'continue', '--resume', sessionId, '--yes', ...common])
+    expect(second.code).toBe(0)
+    expect(JSON.parse(second.stdout().slice(before))).toMatchObject({
+      agent: 'plan',
+      todos: [{ content: 'Step one', status: 'pending' }],
+      summary: 'Resumed.',
+    })
+    expect(model.requests[2]!.tools.map((tool) => tool.function.name)).not.toContain('write_file')
+  })
 })

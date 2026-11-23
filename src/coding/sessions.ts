@@ -13,6 +13,10 @@ export interface CodingSession {
   backend: 'harness' | 'direct'
   model: string
   messages: CodeMessage[]
+  /** Active agent mode when the session was saved. */
+  agent?: 'build' | 'plan'
+  /** Latest todo_write plan, restored on resume. */
+  todos?: { content: string; status: 'pending' | 'in_progress' | 'completed' | 'cancelled' }[]
 }
 
 const validId = (id: string) => /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)
@@ -56,6 +60,9 @@ export class SessionStore {
       typeof value.model !== 'string'
     )
       throw new Error('Invalid coding session')
+    if (value.agent !== undefined && value.agent !== 'build' && value.agent !== 'plan')
+      delete value.agent
+    if (value.todos !== undefined && !Array.isArray(value.todos)) delete value.todos
     return value as CodingSession
   }
 

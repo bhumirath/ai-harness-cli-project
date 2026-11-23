@@ -250,6 +250,8 @@ export function registerCode(program: Command): void {
               exitCode: EXIT.usage,
             })
           opts.model ??= session.model
+          if (session.agent && cmd.getOptionValueSource('agent') === 'default')
+            opts.agent = session.agent
         }
         let provider: CodeProvider
         let selectedModel: string
@@ -327,6 +329,9 @@ export function registerCode(program: Command): void {
           },
         ]
         if (session) {
+          workspace.todos = (session.todos ?? []).filter(
+            (todo) => typeof todo?.content === 'string' && typeof todo?.status === 'string',
+          )
           messages.splice(1, 0, ...session.messages.filter((message) => message.role !== 'system'))
         } else if (opts.session) {
           session = sessions.create(
@@ -404,8 +409,10 @@ export function registerCode(program: Command): void {
             if (interactive && task === '/new') {
               messages.splice(1)
               workspace.changedFiles.clear()
+              workspace.todos = []
               if (session) {
                 session.messages = []
+                session.todos = []
                 await sessions.save(session)
               }
               task = ''
@@ -661,6 +668,8 @@ export function registerCode(program: Command): void {
             await history.commit()
             if (session) {
               session.messages = messages.map((message) => ({ ...message }))
+              session.agent = permissions.agent
+              session.todos = workspace.todos
               await sessions.save(session)
             }
             if (json)
