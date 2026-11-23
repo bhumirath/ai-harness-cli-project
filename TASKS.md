@@ -394,3 +394,16 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
         `<config dir>/commands/*.md` (user); optional `description:` front matter; `$ARGUMENTS` and
         `$1..$9`; built-ins cannot be overridden; commands only produce prompt text.
   - [x] Tests for parsing, expansion, precedence, completion and help.
+
+### CLI-039 · Non-interactive runs (`-p`, `harness run`, stdin)
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-022, CLI-035
+- Description: scriptable one-shot runs like `opencode run`.
+- Acceptance criteria:
+  - [x] `harness code -p "<task>"`, `harness run "<task>"` (alias) and piped stdin (`-p -`, or no
+        task with non-TTY stdin, max 200 KB) run to completion without prompting.
+  - [x] `--json` prints one document with status, summary, changed files, usage, model, agent,
+        todos and session id; exit codes 0 completed, 1 failed/max steps/canceled, 2 usage,
+        3 auth, 4 payment.
+  - [x] Integration tests against a mock OpenAI-compatible server (no paid APIs).

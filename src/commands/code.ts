@@ -88,10 +88,25 @@ export function resolveCodingModel(
   return preferredCodingModel(usable)
 }
 
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = []
+  let size = 0
+  for await (const chunk of process.stdin) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk))
+    size += buffer.length
+    if (size > 200_000)
+      throw new CliError('Task from stdin exceeds 200 KB', { exitCode: EXIT.usage })
+    chunks.push(buffer)
+  }
+  return Buffer.concat(chunks).toString('utf8').trim()
+}
+
 export function registerCode(program: Command): void {
   program
     .command('code [task...]')
+    .alias('run')
     .description('Code in a local project: inspect, edit and run tests with an AI agent')
+    .option('-p, --prompt <text>', 'run one task non-interactively ("-" reads it from stdin)')
     .option('--cwd <path>', 'workspace root', '.')
     .option('--backend <backend>', 'harness | direct', 'harness')
     .option('--model <id>', 'AI Harness model ref, or direct model id')
@@ -133,6 +148,7 @@ export function registerCode(program: Command): void {
           yes?: boolean
           agent: string
           maxSteps: string
+          prompt?: string
           contextTokens?: string
           maxOutputTokens: string
           plain?: boolean
@@ -178,6 +194,16 @@ export function registerCode(program: Command): void {
         )
           throw new CliError('--context-tokens must be 8000..10000000', { exitCode: EXIT.usage })
         const json = Boolean(globals(cmd).json)
+        if (opts.prompt !== undefined && words.length)
+          throw new CliError('Pass the task either as arguments or with --prompt', {
+            exitCode: EXIT.usage,
+          })
+        if (
+          opts.prompt === '-' ||
+          (opts.prompt === undefined && !words.length && !process.stdin.isTTY)
+        )
+          words = [await readStdin()]
+        else if (opts.prompt !== undefined) words = [opts.prompt]
         const interactive = words.length === 0
         if (!interactive && !words.join(' ').trim())
           throw new CliError('Coding task must not be empty', { exitCode: EXIT.usage })
@@ -623,7 +649,10 @@ export function registerCode(program: Command): void {
               printJson({
                 ...result,
                 backend: opts.backend,
+                model: workspace.redact(selectedModel),
+                agent: permissions.agent,
                 cwd: workspace.root,
+                ...(workspace.todos.length ? { todos: workspace.todos } : {}),
                 ...(session ? { sessionId: session.id } : {}),
               })
             else {
