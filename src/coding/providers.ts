@@ -4,10 +4,10 @@ import { CliError, EXIT } from '../api/errors.ts'
 import { readSse } from '../api/sse.ts'
 import type { CodeMessage, CodeProvider, CodeTool, CodeTurn } from './types.ts'
 
-export function accountProvider(api: Api, model: string): CodeProvider {
+export function accountProvider(api: Api, model: string, maxOutputTokens = 4096): CodeProvider {
   return {
     async turn(messages, tools, signal, onTextDelta) {
-      const body = { modelRef: model, messages, tools, maxOutputTokens: 2048 }
+      const body = { modelRef: model, messages, tools, maxOutputTokens }
       if (!onTextDelta)
         return unwrap(api.client.POST('/api/coding/turn', { body, signal }), api.settings.apiUrl)
       for await (const event of api.stream('/api/coding/stream', body, signal)) {
@@ -24,7 +24,12 @@ export function accountProvider(api: Api, model: string): CodeProvider {
 const record = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
 const count = (v: unknown) => (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : 0)
-export function directProvider(model: string, baseUrl: string, key?: string): CodeProvider {
+export function directProvider(
+  model: string,
+  baseUrl: string,
+  key?: string,
+  maxOutputTokens = 4096,
+): CodeProvider {
   let url: URL
   try {
     url = new URL(baseUrl.replace(/\/+$/, '') + '/chat/completions')
@@ -62,7 +67,7 @@ export function directProvider(model: string, baseUrl: string, key?: string): Co
             model,
             messages,
             tools,
-            max_tokens: 2048,
+            max_tokens: maxOutputTokens,
             stream: Boolean(onTextDelta),
             ...(onTextDelta ? { stream_options: { include_usage: true } } : {}),
           }),

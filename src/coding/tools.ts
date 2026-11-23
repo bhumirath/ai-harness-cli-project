@@ -2,7 +2,10 @@ import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import path from 'node:path'
+import { globToRegExp } from './glob.ts'
+import { findRipgrep, matchLines, ripgrepSearch, searchRegExp, type SearchMatch } from './search.ts'
 import type { CodeTool, ToolResult } from './types.ts'
+import { webFetch, type FetchOptions } from './webfetch.ts'
 
 const SKIP = new Set([
   '.git',
@@ -20,6 +23,7 @@ const SKIP = new Set([
 ])
 const MAX_FILE = 1_000_000
 const MAX_OUTPUT = 32_000
+const MAX_LINE = 2_000
 const MAX_DIFF_LINES = 80
 const sha = (data: Uint8Array | string) => createHash('sha256').update(data).digest('hex')
 const string = (args: Record<string, unknown>, name: string) => {
@@ -119,35 +123,66 @@ const definition = (
 })
 const text = { type: 'string' }
 const number = { type: 'integer', minimum: 1 }
+const bool = { type: 'boolean' }
+export const TODO_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'] as const
+export interface TodoItem {
+  content: string
+  status: (typeof TODO_STATUSES)[number]
+}
 export const CODE_TOOLS: CodeTool[] = [
   definition(
     'list_files',
-    'List one workspace directory. Dependency and Git directories are excluded.',
+    'List one workspace directory. Dependency and Git directories are excluded. Use glob to find files recursively.',
     { path: text },
   ),
   definition(
     'read_file',
-    'Read numbered text lines; returns file hash for optimistic writes and relevant instructions.',
+    'Read numbered text lines (default first 400 lines, at most 2000 per call; long lines are cut). Returns the file hash for optimistic writes, totalLines, and nextStartLine when more content remains.',
     { path: text, startLine: number, endLine: number },
     ['path'],
   ),
   definition(
-    'search_files',
-    'Search workspace files for literal text. Results are bounded.',
-    { query: text, path: text },
-    ['query'],
+    'grep',
+    'Search file contents with a regular expression (ripgrep when installed). Returns path, line and text for each match. Use literal=true for plain text, include to filter files by glob (for example "*.ts" or "src/**/*.{ts,tsx}").',
+    { pattern: text, path: text, include: text, ignoreCase: bool, literal: bool },
+    ['pattern'],
+  ),
+  definition(
+    'glob',
+    'Find files by glob pattern (for example "**/*.test.ts"), newest first. Dependency, Git and secret files are excluded.',
+    { pattern: text, path: text },
+    ['pattern'],
   ),
   definition(
     'write_file',
-    'Create text file, or replace an existing file only with its current expectedHash from read_file.',
+    'Create a text file, or replace an existing file only with its current expectedHash from read_file. Use for new files or full rewrites.',
     { path: text, content: text, expectedHash: text },
     ['path', 'content'],
   ),
   definition(
     'edit_file',
-    'Replace exactly one occurrence of oldText with newText; fails if missing or ambiguous.',
-    { path: text, oldText: text, newText: text },
+    'Replace exactly one occurrence of oldText with newText (or every occurrence with replaceAll=true); fails if missing or ambiguous. oldText must match the file exactly, including indentation.',
+    { path: text, oldText: text, newText: text, replaceAll: bool },
     ['path', 'oldText', 'newText'],
+  ),
+  definition(
+    'multi_edit',
+    'Apply several exact-text edits to one file atomically, in order; each edit works like edit_file on the result of the previous one. Nothing is written if any edit fails.',
+    {
+      path: text,
+      edits: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 50,
+        items: {
+          type: 'object',
+          properties: { oldText: text, newText: text, replaceAll: bool },
+          required: ['oldText', 'newText'],
+          additionalProperties: false,
+        },
+      },
+    },
+    ['path', 'edits'],
   ),
   definition(
     'apply_patch',
@@ -157,8 +192,8 @@ export const CODE_TOOLS: CodeTool[] = [
   ),
   definition(
     'run_command',
-    'Run a shell command in the workspace after permission. Inspect exitCode/output and fix failures.',
-    { command: text, timeoutMs: { ...number, maximum: 120000 } },
+    'Run a shell command after permission (default timeout 120000 ms, max 600000). cwd is a workspace-relative directory. Long output keeps its beginning and end. Inspect exitCode/output and fix failures. Avoid interactive commands.',
+    { command: text, cwd: text, timeoutMs: { ...number, maximum: 600000 } },
     ['command'],
   ),
   definition(
@@ -166,14 +201,142 @@ export const CODE_TOOLS: CodeTool[] = [
     'Run bounded Git diff after command approval; repository filters may execute code.',
     {},
   ),
+  definition(
+    'web_fetch',
+    'Fetch a public http(s) URL (documentation, issues, APIs) after permission. HTML is converted to text unless format is "html". Private and loopback addresses are refused; content is truncated to 60000 characters.',
+    { url: text, format: { type: 'string', enum: ['text', 'markdown', 'html'] } },
+    ['url'],
+  ),
+  definition(
+    'todo_write',
+    'Create or update the task plan for multi-step work. Send the complete list every time; keep exactly one item in_progress while working and mark items completed as soon as they are done.',
+    {
+      todos: {
+        type: 'array',
+        maxItems: 50,
+        items: {
+          type: 'object',
+          properties: {
+            content: text,
+            status: { type: 'string', enum: [...TODO_STATUSES] },
+          },
+          required: ['content', 'status'],
+          additionalProperties: false,
+        },
+      },
+    },
+    ['todos'],
+  ),
 ]
-export const MUTATING_TOOLS = new Set([
-  'write_file',
-  'edit_file',
-  'apply_patch',
-  'run_command',
-  'git_diff',
+/** Tools that read the workspace only. */
+export const READ_TOOLS = new Set(['list_files', 'read_file', 'grep', 'glob', 'search_files'])
+/** Tools that change files in the workspace. */
+export const EDIT_TOOLS = new Set(['write_file', 'edit_file', 'multi_edit', 'apply_patch'])
+export const MUTATING_TOOLS = new Set([...EDIT_TOOLS, 'run_command', 'git_diff', 'web_fetch'])
+/** Executable but not advertised: kept for older transcripts and scripts. */
+const LEGACY_TOOLS = new Set(['search_files'])
+export const knownTool = (name: string) =>
+  LEGACY_TOOLS.has(name) || CODE_TOOLS.some((tool) => tool.function.name === name)
+
+const PROTECTED_NAMES = new Set([
+  '.git',
+  '.aws',
+  '.ssh',
+  '.gnupg',
+  '.netrc',
+  '.git-credentials',
+  '.npmrc',
+  '.pypirc',
+  '.credentials.json',
 ])
+/** Git metadata and common secret-file names that file tools never read or write. */
+export const protectedSegment = (segment: string) =>
+  PROTECTED_NAMES.has(segment) ||
+  /^\.env(?:\.|$)|^id_(?:rsa|ed25519)$|\.(?:pem|key)$/i.test(segment)
+
+/** Applies exact-text edits in order; throws without partial results when any edit fails. */
+export function applyTextEdits(
+  content: string,
+  edits: { oldText: string; newText: string; replaceAll?: boolean }[],
+): string {
+  let output = content
+  edits.forEach((edit, index) => {
+    const label = edits.length > 1 ? `Edit ${index + 1}: ` : ''
+    if (!edit.oldText) throw new Error(`${label}oldText must not be empty`)
+    if (edit.oldText === edit.newText) throw new Error(`${label}oldText and newText are identical`)
+    const first = output.indexOf(edit.oldText)
+    if (first < 0)
+      throw new Error(
+        `${label}oldText was not found; read the file again and match whitespace exactly`,
+      )
+    if (edit.replaceAll) output = output.replaceAll(edit.oldText, () => edit.newText)
+    else {
+      if (output.indexOf(edit.oldText, first + 1) >= 0)
+        throw new Error(
+          `${label}oldText must match exactly once; include more surrounding text or use replaceAll`,
+        )
+      output = output.slice(0, first) + edit.newText + output.slice(first + edit.oldText.length)
+    }
+  })
+  return output
+}
+
+function parseEdits(value: unknown): { oldText: string; newText: string; replaceAll: boolean }[] {
+  if (!Array.isArray(value) || !value.length || value.length > 50)
+    throw new Error('edits must be an array of 1..50 items')
+  return value.map((item: unknown) => {
+    const edit = item as Record<string, unknown> | null
+    if (!edit || typeof edit.oldText !== 'string' || typeof edit.newText !== 'string')
+      throw new Error('Each edit needs string oldText and newText')
+    return { oldText: edit.oldText, newText: edit.newText, replaceAll: edit.replaceAll === true }
+  })
+}
+
+/** Keeps the beginning and the end of long process output, where errors and summaries live. */
+export class BoundedOutput {
+  private head = ''
+  private tail = ''
+  private omitted = 0
+  private readonly headLimit: number
+  private readonly tailLimit: number
+  constructor(limit: number) {
+    this.headLimit = Math.floor(limit * 0.3)
+    this.tailLimit = Math.floor(limit * 0.7)
+  }
+  get truncated(): boolean {
+    return this.omitted > 0
+  }
+  push(chunk: string): void {
+    if (this.head.length < this.headLimit) {
+      const room = this.headLimit - this.head.length
+      this.head += chunk.slice(0, room)
+      chunk = chunk.slice(room)
+    }
+    if (!chunk) return
+    this.tail += chunk
+    if (this.tail.length > this.tailLimit * 2) this.trim()
+  }
+  private trim(): void {
+    const excess = this.tail.length - this.tailLimit
+    if (excess > 0) {
+      this.omitted += excess
+      this.tail = this.tail.slice(excess)
+    }
+  }
+  text(): string {
+    this.trim()
+    return this.omitted
+      ? `${this.head}\n… [${this.omitted} characters of output omitted] …\n${this.tail}`
+      : this.head + this.tail
+  }
+}
+
+export interface WorkspaceOptions {
+  /** Web fetch guard override, used by tests to exercise redirects on loopback servers. */
+  fetch?: FetchOptions
+}
+/** Called with the previous file content (undefined for a new file) before every write. */
+export type BeforeWrite = (relative: string, previous: string | undefined) => void
 
 export class WorkspaceTools {
   readonly root: string
@@ -194,14 +357,18 @@ export class WorkspaceTools {
     )
   }
 
+  todos: TodoItem[] = []
+  beforeWrite: BeforeWrite | undefined
   private readonly seenInstructions = new Map<string, string>()
-  private constructor(root: string) {
+  private readonly options: WorkspaceOptions
+  private constructor(root: string, options: WorkspaceOptions) {
     this.root = root
+    this.options = options
   }
-  static async open(root: string): Promise<WorkspaceTools> {
+  static async open(root: string, options: WorkspaceOptions = {}): Promise<WorkspaceTools> {
     const canonical = await fs.realpath(root)
     if (!(await fs.stat(canonical)).isDirectory()) throw new Error('Workspace must be a directory')
-    return new WorkspaceTools(canonical)
+    return new WorkspaceTools(canonical, options)
   }
   private inside(target: string): void {
     const rel = path.relative(this.root, target)
@@ -213,22 +380,7 @@ export class WorkspaceTools {
     const target = path.resolve(this.root, input)
     this.inside(target)
     const segments = path.relative(this.root, target).split(path.sep)
-    if (
-      segments.some(
-        (s) =>
-          [
-            '.git',
-            '.aws',
-            '.ssh',
-            '.gnupg',
-            '.netrc',
-            '.git-credentials',
-            '.npmrc',
-            '.pypirc',
-            '.credentials.json',
-          ].includes(s) || /^\.env(?:\.|$)|^id_(?:rsa|ed25519)$|\.(?:pem|key)$/i.test(s),
-      )
-    )
+    if (segments.some(protectedSegment))
       throw new Error('Path is Git metadata or matches an excluded secret-file pattern')
     let existing = target
     const suffix: string[] = []
@@ -329,6 +481,7 @@ export class WorkspaceTools {
     if (current && (!expected || current.hash !== expected))
       throw new Error('File changed or expectedHash is missing; read the file again before writing')
     if (!current && expected) throw new Error('File no longer exists; read the workspace again')
+    this.beforeWrite?.(path.relative(this.root, file), current?.content)
     await fs.mkdir(path.dirname(file), { recursive: true })
     if (!current) await fs.writeFile(file, content, { flag: 'wx' })
     else {
@@ -356,7 +509,7 @@ export class WorkspaceTools {
     const files: string[] = []
     for await (const entry of await fs.opendir(directory)) {
       if (++budget.entries > 5000) break
-      if (SKIP.has(entry.name) || entry.isSymbolicLink() || entry.name.startsWith('.env')) continue
+      if (SKIP.has(entry.name) || entry.isSymbolicLink() || protectedSegment(entry.name)) continue
       const full = path.join(directory, entry.name)
       if (entry.isDirectory()) files.push(...(await this.walk(full, depth + 1, budget)))
       else if (entry.isFile()) {
@@ -374,11 +527,19 @@ export class WorkspaceTools {
   ): Promise<ToolResult> {
     signal.throwIfAborted()
     try {
-      if (!CODE_TOOLS.some((t) => t.function.name === name)) throw new Error('Unknown coding tool')
+      if (!knownTool(name)) throw new Error('Unknown coding tool')
       if (name === 'run_command') {
         const command = string(args, 'command')
         if (!command.trim() || command.length > 16000) throw new Error('Invalid shell command')
-        return await this.command(command, integer(args.timeoutMs, 60000, 120000), signal, true)
+        const cwd = args.cwd === undefined ? this.root : await this.resolve(string(args, 'cwd'))
+        if (!(await fs.stat(cwd)).isDirectory()) throw new Error('cwd must be a directory')
+        return await this.command(
+          command,
+          integer(args.timeoutMs, 120000, 600000),
+          signal,
+          true,
+          cwd,
+        )
       }
       if (name === 'git_diff')
         return await this.command(
@@ -398,6 +559,43 @@ export class WorkspaceTools {
           signal,
           false,
         )
+      if (name === 'web_fetch') {
+        const format = args.format === undefined ? 'markdown' : string(args, 'format')
+        if (!['text', 'markdown', 'html'].includes(format))
+          throw new Error('format must be text, markdown or html')
+        const url = string(args, 'url')
+        if (url.length > 4000) throw new Error('URL is too long')
+        const fetched = await webFetch(
+          url,
+          format as 'text' | 'markdown' | 'html',
+          signal,
+          this.options.fetch,
+        )
+        return { ...fetched }
+      }
+      if (name === 'todo_write') {
+        if (!Array.isArray(args.todos) || args.todos.length > 50)
+          throw new Error('todos must be an array of at most 50 items')
+        const todos = args.todos.map((item: unknown) => {
+          const todo = item as Partial<TodoItem> | null
+          if (
+            !todo ||
+            typeof todo.content !== 'string' ||
+            !todo.content.trim() ||
+            todo.content.length > 500 ||
+            !TODO_STATUSES.includes(todo.status as TodoItem['status'])
+          )
+            throw new Error('Each todo needs content (1..500 chars) and a valid status')
+          return { content: todo.content.trim(), status: todo.status! }
+        })
+        this.todos = todos
+        return {
+          ok: true,
+          todos,
+          remaining: todos.filter((t) => t.status === 'pending' || t.status === 'in_progress')
+            .length,
+        }
+      }
       const file = await this.resolve(args.path === undefined ? '.' : string(args, 'path'))
       if (name === 'list_files') {
         const entries: { name: string; directory: boolean; symlink: boolean }[] = []
@@ -408,69 +606,124 @@ export class WorkspaceTools {
             truncated = true
             break
           }
-          if (!SKIP.has(entry.name) && !entry.name.startsWith('.env'))
+          if (!SKIP.has(entry.name) && !protectedSegment(entry.name))
             entries.push({
               name: entry.name,
               directory: entry.isDirectory(),
               symlink: entry.isSymbolicLink(),
             })
         }
+        entries.sort(
+          (a, b) => Number(b.directory) - Number(a.directory) || a.name.localeCompare(b.name),
+        )
         return { ok: true, entries, truncated }
       }
-      if (name === 'search_files') {
-        const query = string(args, 'query')
-        if (!query || query.length > 1000)
-          throw new Error('Search query must be 1..1000 characters')
+      if (name === 'glob') {
+        const pattern = string(args, 'pattern')
+        const regex = globToRegExp(pattern)
+        const budget = { files: 0, entries: 0 }
+        const files = await this.walk(file, 0, budget)
+        const matched: { path: string; mtime: number }[] = []
+        for (const candidate of files) {
+          signal.throwIfAborted()
+          const relativeToBase = path.relative(file, candidate).replaceAll('\\', '/')
+          if (!regex.test(relativeToBase)) continue
+          const stat = await fs.stat(candidate).catch(() => undefined)
+          matched.push({ path: path.relative(this.root, candidate), mtime: stat?.mtimeMs ?? 0 })
+        }
+        matched.sort((a, b) => b.mtime - a.mtime || a.path.localeCompare(b.path))
+        return {
+          ok: true,
+          files: matched.slice(0, 200).map((item) => item.path),
+          count: matched.length,
+          truncated: matched.length > 200 || files.length >= 2000 || budget.entries >= 5000,
+        }
+      }
+      if (name === 'grep' || name === 'search_files') {
+        const legacy = name === 'search_files'
+        const pattern = string(args, legacy ? 'query' : 'pattern')
+        const literal = legacy || args.literal === true
+        const ignoreCase = args.ignoreCase === true
+        const include = args.include === undefined ? undefined : string(args, 'include')
+        const includeRegex = include ? globToRegExp(include) : undefined
+        const regex = searchRegExp(pattern, literal, ignoreCase)
+        const rg = findRipgrep()
+        if (rg) {
+          try {
+            const found = await ripgrepSearch(rg, {
+              root: this.root,
+              target: file,
+              pattern,
+              include,
+              ignoreCase,
+              literal,
+              maxMatches: 100,
+              signal,
+            })
+            const matches = found.matches.filter(
+              (match) => !match.path.split(/[\\/]/).some(protectedSegment),
+            )
+            return { ok: true, matches, truncated: found.truncated, engine: 'ripgrep' }
+          } catch (error) {
+            signal.throwIfAborted()
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+          }
+        }
         const budget = { files: 0, entries: 0 }
         const files = (await fs.stat(file)).isDirectory()
           ? await this.walk(file, 0, budget)
           : [file]
-        const matches: { path: string; line: number; text: string }[] = []
+        const matches: SearchMatch[] = []
         for (const candidate of files) {
           signal.throwIfAborted()
+          const relative = path.relative(this.root, candidate)
+          if (includeRegex && !includeRegex.test(relative.replaceAll('\\', '/'))) continue
           let content: string
           try {
-            content = (await this.read(await this.resolve(path.relative(this.root, candidate))))
-              .content
+            content = (await this.read(await this.resolve(relative))).content
           } catch {
             continue
           }
           const lines = content.split('\n')
-          for (let i = 0; i < lines.length; i++)
-            if (lines[i]!.includes(query)) {
-              matches.push({
-                path: path.relative(this.root, candidate),
-                line: i + 1,
-                text: lines[i]!.slice(0, 300),
-              })
-              if (matches.length >= 100) return { ok: true, matches, truncated: true }
-            }
+          for (const line of matchLines(content, regex, 100 - matches.length)) {
+            matches.push({ path: relative, line, text: lines[line - 1]!.slice(0, 300) })
+          }
+          if (matches.length >= 100)
+            return { ok: true, matches, truncated: true, engine: 'builtin' }
         }
         return {
           ok: true,
           matches,
           scannedFiles: files.length,
           truncated: files.length >= 2000 || budget.entries >= 5000,
+          engine: 'builtin',
         }
       }
       if (name === 'read_file') {
         const { content, hash } = await this.read(file)
         const lines = content.split('\n')
         const start = integer(args.startLine, 1, 1_000_000)
-        const end = integer(args.endLine, start + 199, 1_000_000)
+        const end = Math.min(integer(args.endLine, start + 399, 1_000_000), start + 1999)
         if (end < start) throw new Error('endLine must be >= startLine')
-        const selected = lines
-          .slice(start - 1, Math.min(end, start + 999))
-          .map((line, i) => `${start + i}: ${line}`)
-          .join('\n')
+        let selected = ''
+        let last = start - 1
+        for (let index = start - 1; index < Math.min(end, lines.length); index++) {
+          const raw = lines[index]!
+          const line = `${index + 1}: ${raw.length > MAX_LINE ? `${raw.slice(0, MAX_LINE)}… [line truncated]` : raw}\n`
+          if (selected.length + line.length > MAX_OUTPUT) break
+          selected += line
+          last = index + 1
+        }
+        const more = last < lines.length
         return {
           ok: true,
           instructions: await this.instructions(file),
           path: path.relative(this.root, file),
           hash,
           totalLines: lines.length,
-          content: selected.slice(0, MAX_OUTPUT),
-          truncated: selected.length > MAX_OUTPUT || Math.min(end, start + 999) < lines.length,
+          content: selected.replace(/\n$/, ''),
+          truncated: more,
+          ...(more ? { nextStartLine: last + 1 } : {}),
         }
       }
       const instructions = await this.instructions(file)
@@ -503,19 +756,18 @@ export class WorkspaceTools {
         if (updated === current.content) throw new Error('Patch does not change the file')
         await this.replace(file, updated, current.hash, true)
       } else {
-        const oldText = string(args, 'oldText')
-        const newText = string(args, 'newText')
-        if (!oldText) throw new Error('oldText must not be empty')
+        const edits =
+          name === 'multi_edit'
+            ? parseEdits(args.edits)
+            : [
+                {
+                  oldText: string(args, 'oldText'),
+                  newText: string(args, 'newText'),
+                  replaceAll: args.replaceAll === true,
+                },
+              ]
         const current = await this.read(file)
-        const first = current.content.indexOf(oldText)
-        if (first < 0 || current.content.indexOf(oldText, first + 1) >= 0)
-          throw new Error('oldText must match exactly once; read the file again')
-        await this.replace(
-          file,
-          current.content.slice(0, first) + newText + current.content.slice(first + oldText.length),
-          current.hash,
-          true,
-        )
+        await this.replace(file, applyTextEdits(current.content, edits), current.hash, true)
       }
       const relative = path.relative(this.root, file)
       const updated = await this.read(file)
@@ -535,6 +787,7 @@ export class WorkspaceTools {
     timeoutMs: number,
     signal: AbortSignal,
     shell: boolean,
+    cwd = this.root,
   ): Promise<ToolResult> {
     return new Promise((resolve, reject) => {
       const args = typeof command === 'string' ? [] : command.slice(1)
@@ -542,27 +795,20 @@ export class WorkspaceTools {
       for (const name of Object.keys(environment))
         if (this.excludedEnvironment.has(name.toUpperCase())) delete environment[name]
       const child = spawn(typeof command === 'string' ? command : command[0]!, args, {
-        cwd: this.root,
+        cwd,
         env: environment,
         shell,
         detached: process.platform !== 'win32',
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
-      let stdout = ''
-      let stderr = ''
-      let truncated = false
+      const out = new BoundedOutput(MAX_OUTPUT * 0.65)
+      const err = new BoundedOutput(MAX_OUTPUT * 0.35)
       let timedOut = false
-      const capture = (text: string, target: 'stdout' | 'stderr') => {
-        const room = MAX_OUTPUT - stdout.length - stderr.length
-        if (text.length > room) truncated = true
-        if (target === 'stdout') stdout += text.slice(0, Math.max(0, room))
-        else stderr += text.slice(0, Math.max(0, room))
-      }
       child.stdout.setEncoding('utf8')
       child.stderr.setEncoding('utf8')
-      child.stdout.on('data', (data: string) => capture(data, 'stdout'))
-      child.stderr.on('data', (data: string) => capture(data, 'stderr'))
+      child.stdout.on('data', (data: string) => out.push(data))
+      child.stderr.on('data', (data: string) => err.push(data))
       const stop = () => {
         if (!child.pid) return
         if (process.platform === 'win32') {
@@ -599,9 +845,9 @@ export class WorkspaceTools {
           resolve({
             ok: code === 0 && !timedOut,
             exitCode: code,
-            stdout,
-            stderr,
-            truncated,
+            stdout: out.text(),
+            stderr: err.text(),
+            truncated: out.truncated || err.truncated,
             timedOut,
           })
       })

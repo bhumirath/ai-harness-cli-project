@@ -98,9 +98,9 @@ export class CodeTui {
       } catch {
         detail = compact(detail, this.width() - name.length - 10)
       }
-      const glyph = /^(read|list|search|git_diff)/.test(name)
+      const glyph = /^(read|list|search|grep|glob|git_diff|todo)/.test(name)
         ? pc.cyan('●')
-        : /^(write|edit|patch)/.test(name)
+        : /^(write|edit|multi_edit|apply_patch)/.test(name)
           ? pc.yellow('◆')
           : pc.magenta('▶')
       this.output.write(`  ${glyph} ${pc.bold(name)}${detail ? `  ${pc.dim(detail)}` : ''}\n`)
@@ -111,6 +111,18 @@ export class CodeTui {
       this.output.write(
         `  ${failed ? pc.red('×') : pc.green('✓')} ${pc.dim(compact(event.text))}\n`,
       )
+      return
+    }
+    if (event.type === 'todo') {
+      this.output.write(`${pc.bold('  Plan')}\n`)
+      for (const line of clean(event.text).split('\n')) {
+        const rendered = line.startsWith('[x]')
+          ? pc.green(line)
+          : line.startsWith('[~]')
+            ? pc.yellow(line)
+            : pc.dim(line)
+        this.output.write(`    ${rendered}\n`)
+      }
       return
     }
     if (event.type === 'diff') {

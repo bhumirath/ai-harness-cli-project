@@ -306,3 +306,27 @@ Contract and safety requirements: `../ai-harness-doc-project/docs/13-microsoft-f
   - [x] Context-hunk `apply_patch` tool supports focused multi-hunk edits with optimistic hashes.
   - [x] Traversal, stale files, ambiguous context, secrets and project instructions remain protected.
   - [x] Coding prompt drives inspect/edit/verify behavior and both provider adapters pass integration tests.
+
+## MC5 — OpenCode-level coding agent
+
+Goal (owner, 2026-11-23): `harness code` should complete coding work end to end, comparable to
+OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
+
+### CLI-034 · Complete and robust coding tool set
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-020, CLI-033
+- Description: fill tool gaps versus OpenCode (regex grep, glob, multi-edit, bash cwd/long output,
+  web fetch, todo plan) while keeping workspace, secret and backend DTO limits (≤16 tools).
+- Acceptance criteria:
+  - [x] `read_file` pages large files (default 400, max 2000 lines, `nextStartLine`) and cuts long lines.
+  - [x] `grep` regex/literal/ignore-case/include search uses ripgrep when on PATH (no symlink follow,
+        secret/dependency excludes) and a built-in fallback whose regex runs under a VM timeout.
+  - [x] `glob` finds files newest first; `edit_file` gains `replaceAll`; atomic `multi_edit`.
+  - [x] `run_command` accepts a workspace-relative `cwd`, timeout up to 10 min and keeps the head and
+        tail of long output; abort still kills the process tree.
+  - [x] `web_fetch` requires permission, refuses non-HTTP(S), credentials, loopback/private/reserved
+        addresses on every redirect hop via a guarded DNS lookup, bounds size/time, converts HTML.
+  - [x] `todo_write` plan tool rendered in the TUI/plain output; `--max-output-tokens` (default 4096)
+        and `--max-steps` default 50 (max 200).
+  - [x] Unit tests for every new tool, guard and limit.

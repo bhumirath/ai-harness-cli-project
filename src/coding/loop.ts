@@ -1,5 +1,5 @@
 import { CliError, EXIT } from '../api/errors.ts'
-import { CODE_TOOLS, MUTATING_TOOLS, WorkspaceTools } from './tools.ts'
+import { CODE_TOOLS, MUTATING_TOOLS, WorkspaceTools, knownTool, type TodoItem } from './tools.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider, ToolResult } from './types.ts'
 
 export interface CodeResult {
@@ -19,9 +19,13 @@ export interface RunOptions {
   progress?: (event: ProgressEvent) => void
 }
 export interface ProgressEvent {
-  type: 'status' | 'delta' | 'text' | 'tool' | 'result' | 'diff'
+  type: 'status' | 'delta' | 'text' | 'tool' | 'result' | 'diff' | 'todo'
   text: string
   final?: boolean
+}
+const TODO_MARK = { pending: '[ ]', in_progress: '[~]', completed: '[x]', cancelled: '[-]' }
+export function formatTodos(todos: TodoItem[]): string {
+  return todos.map((todo) => `${TODO_MARK[todo.status]} ${todo.content}`).join('\n')
 }
 export async function codingRun(
   provider: CodeProvider,
@@ -127,7 +131,7 @@ export async function codingRun(
           if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
             throw new Error('Tool arguments must be a JSON object')
           args = parsed as Record<string, unknown>
-          const known = CODE_TOOLS.some((t) => t.function.name === call.function.name)
+          const known = knownTool(call.function.name)
           if (!known) throw new Error('Unknown coding tool')
           options.progress?.({
             type: 'tool',
@@ -161,6 +165,8 @@ export async function codingRun(
         })
         if (output.ok && typeof output.diff === 'string')
           options.progress?.({ type: 'diff', text: output.diff })
+        if (output.ok && call.function.name === 'todo_write')
+          options.progress?.({ type: 'todo', text: formatTodos(workspace.todos) })
         const serialized = workspace.stringify(output)
         messages.push({
           role: 'tool',
