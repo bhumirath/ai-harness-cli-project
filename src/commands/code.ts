@@ -10,7 +10,8 @@ import { accountProvider, directProvider } from '../coding/providers.ts'
 import { codingRun } from '../coding/loop.ts'
 import { WorkspaceTools } from '../coding/tools.ts'
 import { CodeTui } from '../coding/tui.ts'
-import { systemPrompt } from '../coding/prompt.ts'
+import { systemPrompt, type AgentMode } from '../coding/prompt.ts'
+import { Permissions, parsePermissionConfig } from '../coding/permissions.ts'
 import { SessionStore, type CodingSession } from '../coding/sessions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
 import type { ProgressEvent } from '../coding/loop.ts'
@@ -33,6 +34,8 @@ export function parseApprovalMode(value: string): ApprovalMode | undefined {
 
 const slashCommands = [
   '/model',
+  '/plan',
+  '/build',
   '/permission',
   '/approval',
   '/session',
@@ -59,7 +62,7 @@ export function slashCompletions(line: string, models: CodingModel[] = []): stri
 
 function printSlashHelp(): void {
   process.stderr.write(
-    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
+    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
   )
 }
 
@@ -102,6 +105,11 @@ export function registerCode(program: Command): void {
       'OPENAI_API_KEY',
     )
     .option('--approval <mode>', 'prompt | auto | read-only', 'prompt')
+    .option(
+      '-y, --yes',
+      'approve edits, commands and web requests without asking (--approval auto)',
+    )
+    .option('--agent <mode>', 'build (edit and run) | plan (read-only analysis)', 'build')
     .option('--max-steps <n>', 'maximum model turns per task', '50')
     .option(
       '--max-output-tokens <n>',
@@ -121,6 +129,8 @@ export function registerCode(program: Command): void {
           baseUrl?: string
           apiKeyEnv: string
           approval: string
+          yes?: boolean
+          agent: string
           maxSteps: string
           maxOutputTokens: string
           plain?: boolean
@@ -131,6 +141,13 @@ export function registerCode(program: Command): void {
       ) => {
         if (!['harness', 'direct'].includes(opts.backend) || !parseApprovalMode(opts.approval))
           throw new CliError('Invalid --backend or --approval', { exitCode: EXIT.usage })
+        if (opts.agent !== 'build' && opts.agent !== 'plan')
+          throw new CliError('--agent must be build or plan', { exitCode: EXIT.usage })
+        if (opts.yes) {
+          if (cmd.getOptionValueSource('approval') !== 'default' && opts.approval !== 'auto')
+            throw new CliError('--yes conflicts with --approval', { exitCode: EXIT.usage })
+          opts.approval = 'auto'
+        }
         if (
           !/^\d+$/.test(opts.maxSteps) ||
           Number(opts.maxSteps) < 1 ||
@@ -158,9 +175,12 @@ export function registerCode(program: Command): void {
         if (interactive && (json || !process.stdin.isTTY))
           throw new CliError('Pass a coding task in scripts/JSON mode', { exitCode: EXIT.usage })
         if (opts.approval === 'prompt' && (!process.stdin.isTTY || json))
-          throw new CliError('Choose --approval auto or read-only in scripts/JSON mode', {
-            exitCode: EXIT.usage,
-          })
+          throw new CliError(
+            'Choose --yes, --approval auto or --approval read-only in scripts/JSON mode',
+            {
+              exitCode: EXIT.usage,
+            },
+          )
         let workspace: WorkspaceTools
         try {
           workspace = await WorkspaceTools.open(opts.cwd)
@@ -226,10 +246,16 @@ export function registerCode(program: Command): void {
           selectedModel = model
           provider = accountProvider(api, model, maxOutputTokens)
         }
+        const permissions = new Permissions(
+          opts.approval as ApprovalMode,
+          parsePermissionConfig(loadConfig().codePermissions),
+          opts.agent as AgentMode,
+        )
+        const projectContext = workspace.redact(await workspace.context())
         const messages: CodeMessage[] = [
           {
             role: 'system',
-            content: systemPrompt('build', workspace.redact(await workspace.context())),
+            content: systemPrompt(permissions.agent, projectContext),
           },
         ]
         if (session) {
@@ -250,11 +276,12 @@ export function registerCode(program: Command): void {
             backend: opts.backend,
             model: workspace.redact(selectedModel),
             approval: opts.approval,
+            agent: permissions.agent,
             session: session?.id,
           })
         else
           process.stderr.write(
-            `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}${session ? `; session: ${session.id}` : ''}\n`,
+            `Coding workspace: ${workspace.redact(JSON.stringify(workspace.root))}; backend: ${opts.backend}; approval: ${opts.approval}; agent: ${permissions.agent}${session ? `; session: ${session.id}` : ''}\n`,
           )
         const terminal =
           process.stdin.isTTY && !json
@@ -340,8 +367,9 @@ export function registerCode(program: Command): void {
               continue
             }
             if (interactive && task === '/diff') {
-              let allowed = opts.approval === 'auto'
-              if (opts.approval === 'prompt') {
+              const decision = permissions.check('git_diff', {})
+              let allowed = decision === 'allow'
+              if (decision === 'ask') {
                 tui?.approval('git_diff', {})
                 allowed = /^y(es)?$/i.test((await terminal!.question('Allow? [y/N] ')).trim())
               }
@@ -439,9 +467,23 @@ export function registerCode(program: Command): void {
                 continue
               }
               opts.approval = chosen
+              permissions.mode = chosen
               process.stderr.write(
                 `Permission changed to ${chosen}${chosen === 'auto' ? ' for this run only' : ''}.\n`,
               )
+              task = ''
+              continue
+            }
+            if (interactive && (task === '/plan' || task === '/build')) {
+              const mode: AgentMode = task === '/plan' ? 'plan' : 'build'
+              permissions.agent = mode
+              messages[0] = { role: 'system', content: systemPrompt(mode, projectContext) }
+              tui?.notice(
+                mode === 'plan'
+                  ? 'Plan agent: read-only analysis; edits and commands are disabled.'
+                  : 'Build agent: edits and commands follow the permission policy.',
+              )
+              if (!tui) process.stderr.write(`Switched to the ${mode} agent.\n`)
               task = ''
               continue
             }
@@ -459,15 +501,19 @@ export function registerCode(program: Command): void {
               signal: current.signal,
               approval: opts.approval as ApprovalMode,
               progress,
+              permissions,
               confirm: terminal
                 ? async (name, args) => {
                     tui?.approval(name, args)
+                    const always = permissions.grantLabel(name, args)
                     const question = tui
-                      ? `${pc.bold('Allow?')} [y/N] `
-                      : `Allow ${name === 'git_diff' ? 'workspace git diff (repository filters may execute)' : name} ${JSON.stringify(args)}? [y/N] `
-                    return /^y(es)?$/i.test(
-                      (await terminal.question(question, { signal: current!.signal })).trim(),
-                    )
+                      ? `${pc.bold('Allow?')} [y]es / [a]lways for ${always} this session / [N]o `
+                      : `Allow ${name === 'git_diff' ? 'workspace git diff (repository filters may execute)' : name} ${JSON.stringify(args)}? [y/a/N] `
+                    const answer = (
+                      await terminal.question(question, { signal: current!.signal })
+                    ).trim()
+                    if (/^a(lways)?$/i.test(answer)) return 'always'
+                    return /^y(es)?$/i.test(answer)
                   }
                 : undefined,
             })

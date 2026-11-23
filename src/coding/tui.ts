@@ -15,6 +15,7 @@ export interface TuiHeader {
   backend: string
   model: string
   approval: string
+  agent?: string
   session?: string
 }
 
@@ -57,7 +58,7 @@ export class CodeTui {
     this.panel(`${pc.bold('AI HARNESS')} ${pc.dim('· CODE')}`, [
       `${pc.cyan('⌂')}  ${compact(info.workspace, this.width() - 8)}`,
       `${pc.magenta('◇')}  ${compact(info.model, this.width() - 8)}`,
-      `${pc.green('●')}  ${info.backend}   ${pc.dim('·')}   ${permission}`,
+      `${pc.green('●')}  ${info.backend}   ${pc.dim('·')}   ${permission}${info.agent ? `   ${pc.dim('·')}   ${info.agent} agent` : ''}`,
       ...(info.session ? [`${pc.blue('◫')}  session ${compact(info.session, 36)}`] : []),
     ])
     this.output.write(
@@ -92,7 +93,7 @@ export class CodeTui {
       try {
         const args = JSON.parse(detail) as Record<string, unknown>
         detail = compact(
-          args.command ?? args.path ?? args.query ?? args.pattern ?? args,
+          args.command ?? args.path ?? args.url ?? args.query ?? args.pattern ?? args,
           this.width() - name.length - 10,
         )
       } catch {
@@ -151,7 +152,7 @@ export class CodeTui {
     const detail =
       name === 'git_diff'
         ? 'workspace git diff (repository filters may execute)'
-        : compact(args.command ?? args.path ?? args, this.width() - 6)
+        : compact(args.command ?? args.url ?? args.path ?? args, this.width() - 6)
     this.panel(
       `${pc.yellow('PERMISSION')} ${pc.dim('· review before continuing')}`,
       [`${pc.bold(name)}`, pc.dim(detail)],
@@ -172,6 +173,11 @@ export class CodeTui {
       ],
       ok ? pc.green : pc.red,
     )
+  }
+
+  notice(text: string): void {
+    this.stopSpinner()
+    this.output.write(`  ${pc.cyan('ℹ')} ${clean(text)}\n`)
   }
 
   finishTurn(): void {

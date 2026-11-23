@@ -17,6 +17,8 @@ export interface StoredConfig {
   agentId?: string
   /** default model for the local coding agent */
   codeModel?: string
+  /** user-level coding permission rules; validated by parsePermissionConfig */
+  codePermissions?: unknown
 }
 
 export const DEFAULT_API_URL = 'https://aiharness.bhumirath.com'

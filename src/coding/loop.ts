@@ -1,5 +1,6 @@
 import { CliError, EXIT } from '../api/errors.ts'
-import { CODE_TOOLS, MUTATING_TOOLS, WorkspaceTools, knownTool, type TodoItem } from './tools.ts'
+import { WorkspaceTools, knownTool, type TodoItem } from './tools.ts'
+import { Permissions, toolCategory, type ConfirmAnswer } from './permissions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider, ToolResult } from './types.ts'
 
 export interface CodeResult {
@@ -15,7 +16,9 @@ export interface RunOptions {
   maxSteps: number
   signal: AbortSignal
   approval: ApprovalMode
-  confirm?: (name: string, args: Record<string, unknown>) => Promise<boolean>
+  /** Session permission policy; defaults to one derived from `approval`. */
+  permissions?: Permissions
+  confirm?: (name: string, args: Record<string, unknown>) => Promise<ConfirmAnswer>
   progress?: (event: ProgressEvent) => void
 }
 export interface ProgressEvent {
@@ -40,6 +43,7 @@ export async function codingRun(
     summary: '',
     usage: { inputTokens: 0, outputTokens: 0, chargedMicro: '0' },
   }
+  const permissions = options.permissions ?? new Permissions(options.approval)
   try {
     for (let step = 0; step < options.maxSteps; step++) {
       options.signal.throwIfAborted()
@@ -84,7 +88,8 @@ export async function codingRun(
       messages.splice(0, messages.length, ...messages.map(sanitize))
       options.progress?.({ type: 'status', text: `Thinking · turn ${step + 1}` })
       let streamed = false
-      const turn = await provider.turn(messages, CODE_TOOLS, options.signal, (text) => {
+      const tools = permissions.tools()
+      const turn = await provider.turn(messages, tools, options.signal, (text) => {
         streamed = true
         options.progress?.({ type: 'delta', text })
       })
@@ -133,23 +138,33 @@ export async function codingRun(
           args = parsed as Record<string, unknown>
           const known = knownTool(call.function.name)
           if (!known) throw new Error('Unknown coding tool')
+          if (
+            !tools.some((tool) => tool.function.name === call.function.name) &&
+            call.function.name !== 'search_files'
+          )
+            throw new Error(
+              `${call.function.name} is not available in ${permissions.agent} mode; the user can switch with /build`,
+            )
           options.progress?.({
             type: 'tool',
             text: `${call.function.name} ${JSON.stringify(args).slice(0, 1000)}`,
           })
-          let allowed = true
-          if (MUTATING_TOOLS.has(call.function.name))
-            allowed =
-              options.approval === 'auto' ||
-              (options.approval === 'prompt' &&
-                Boolean(await options.confirm?.(call.function.name, args)))
-          output = allowed
-            ? await workspace.execute(call.function.name, args, options.signal)
-            : {
-                ok: false,
-                error:
-                  'Action denied by local approval policy; do not retry without user permission',
-              }
+          let decision = permissions.check(call.function.name, args)
+          if (decision === 'ask') {
+            const answer = await options.confirm?.(call.function.name, args)
+            if (answer === 'always') permissions.grant(call.function.name, args)
+            decision = answer ? 'allow' : 'deny'
+          }
+          output =
+            decision === 'allow'
+              ? await workspace.execute(call.function.name, args, options.signal)
+              : {
+                  ok: false,
+                  error:
+                    permissions.agent === 'plan' && toolCategory(call.function.name) !== 'webfetch'
+                      ? 'Plan mode is read-only; describe the change instead. The user can switch with /build'
+                      : 'Action denied by local approval policy; do not retry without user permission',
+                }
         } catch (error) {
           options.signal.throwIfAborted()
           output = {

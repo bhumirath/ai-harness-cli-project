@@ -330,3 +330,21 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
   - [x] `todo_write` plan tool rendered in the TUI/plain output; `--max-output-tokens` (default 4096)
         and `--max-steps` default 50 (max 200).
   - [x] Unit tests for every new tool, guard and limit.
+
+### CLI-035 · Per-tool permissions and plan/build agents
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-034
+- Description: OpenCode-style permission categories with session "always allow", user-level
+  rules, `--yes`, and a read-only plan agent switchable in the session.
+- Acceptance criteria:
+  - [x] Reads/todo always allowed; edits, commands (incl. git diff) and web fetch ask by default;
+        `--approval auto` / `-y, --yes` allow; `read-only` denies.
+  - [x] Prompt answers `y` / `a` (always) / `N`; "always" covers all edits, the exact command, or
+        the fetched host for the rest of the session.
+  - [x] User config `codePermissions` (edit/bash/webfetch decisions, `allowCommands`,
+        `denyCommands` with `*`); allow patterns never approve compound/redirected commands; deny
+        patterns apply even in auto mode. Project files cannot grant permissions.
+  - [x] `--agent plan|build`, `/plan` and `/build`: the plan agent gets only read/web/todo tools,
+        a planning system prompt, and edit/command calls are refused without touching files.
+  - [x] Unit and loop integration tests.
