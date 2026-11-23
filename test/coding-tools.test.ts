@@ -200,8 +200,10 @@ describe('run_command', () => {
       { command: 'node -e "console.log(process.cwd())"', cwd: 'pkg' },
       signal(),
     )
-    // macOS tmp dirs live behind the /var → /private/var symlink
-    expect(String(where.stdout).trim()).toBe(realpathSync(path.join(root, 'pkg')))
+    // macOS tmp dirs sit behind /var → /private/var; Windows may report 8.3 short names
+    expect(realpathSync.native(String(where.stdout).trim())).toBe(
+      realpathSync.native(path.join(root, 'pkg')),
+    )
     expect(
       (await workspace.execute('run_command', { command: 'echo x', cwd: '..' }, signal())).error,
     ).toMatch(/escapes/)
