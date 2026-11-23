@@ -70,7 +70,23 @@ harness code "Review this project" --cwd ./project --backend direct --base-url h
 
 # Automation: explicitly grant actions and receive one final JSON result
 harness code "Fix the bug and run tests" --cwd ./project --backend direct --model <model-id> --approval auto --max-steps 20 --json
+
+# Scripted one-shot runs (OpenCode-style): -p, the `run` alias, or a task on stdin
+harness run -p "Add input validation to @src/api.ts and test it" --yes --json
+git diff | harness code -p - --agent plan --approval read-only
+
+# Run the type checker after every editing step and feed errors back to the model
+harness code --cwd ./project --check "pnpm -s tsc --noEmit"
 ```
+
+Tools: `list_files`, `read_file` (paged), `grep` (regex; ripgrep when installed), `glob`,
+`write_file`, `edit_file` (exact text, `replaceAll`), `multi_edit`, `apply_patch`, `run_command`
+(`cwd`, timeout, head+tail output), `git_diff`, `web_fetch` (public URLs only) and `todo_write`
+(a visible task plan). Interactive commands: `/help`, `/model`, `/permission`, `/plan`, `/build`,
+`/undo`, `/redo`, `/diff`, `/compact`, `/init`, `/session`, `/sessions`, `/new`, `/exit`, plus
+custom prompt commands from `.harness/commands/*.md`. Mention files with `@path`. Permission
+prompts accept `y`, `a` (always for this session) or `N`; user-level rules live under
+`codePermissions` in the config file. Full reference: hub `docs/12-coding-cli.md`.
 
 Coding mode can list/read/search a workspace, make guarded text edits, create files, run test/shell
 commands, inspect Git diff and iterate over model tool calls. It loads root/nested AGENTS.md, rejects
