@@ -380,3 +380,17 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
         recent turns, the plan and tool-call/result pairing; falls back to output truncation.
   - [x] `/compact` on demand; `--context-tokens` overrides model metadata (default 128000).
   - [x] Tests for fallback instructions, mentions, thresholds, pairing and in-loop compaction.
+
+### CLI-038 · Session slash commands, /init and custom commands
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-035, CLI-036, CLI-037
+- Description: complete the interactive command set and let projects/users add prompt commands.
+- Acceptance criteria:
+  - [x] Built-ins: /help /model /permission /plan /build /undo /redo /diff /compact /init /session
+        /sessions /new /exit, with help text and Tab completion from one table.
+  - [x] `/init [guidance]` asks the agent to inspect the project and create/improve AGENTS.md.
+  - [x] Custom commands from `.harness/commands/*.md` (project, read through workspace guards) and
+        `<config dir>/commands/*.md` (user); optional `description:` front matter; `$ARGUMENTS` and
+        `$1..$9`; built-ins cannot be overridden; commands only produce prompt text.
+  - [x] Tests for parsing, expansion, precedence, completion and help.

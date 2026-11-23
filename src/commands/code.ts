@@ -12,6 +12,14 @@ import { WorkspaceTools } from '../coding/tools.ts'
 import { CodeTui } from '../coding/tui.ts'
 import { systemPrompt, type AgentMode } from '../coding/prompt.ts'
 import { ChangeHistory } from '../coding/snapshots.ts'
+import {
+  BUILTIN_COMMANDS,
+  INIT_PROMPT,
+  expandTemplate,
+  helpText,
+  loadCustomCommands,
+  type CustomCommand,
+} from '../coding/slash.ts'
 import { compactMessages, expandMentions } from '../coding/context.ts'
 import { formatTodos } from '../coding/loop.ts'
 import { readFileSync } from 'node:fs'
@@ -38,25 +46,11 @@ export function parseApprovalMode(value: string): ApprovalMode | undefined {
   return approvalModes.find((mode) => mode === value)
 }
 
-const slashCommands = [
-  '/model',
-  '/plan',
-  '/build',
-  '/undo',
-  '/redo',
-  '/permission',
-  '/approval',
-  '/session',
-  '/sessions',
-  '/diff',
-  '/compact',
-  '/new',
-  '/help',
-  '/exit',
-  '/quit',
-]
-
-export function slashCompletions(line: string, models: CodingModel[] = []): string[] {
+export function slashCompletions(
+  line: string,
+  models: CodingModel[] = [],
+  custom: CustomCommand[] = [],
+): string[] {
   const candidates = line.startsWith('/model ')
     ? models
         .filter((model) => model.supportsTools && !unsuitableInteractiveModel.test(model.modelId))
@@ -65,14 +59,8 @@ export function slashCompletions(line: string, models: CodingModel[] = []): stri
       ? approvalModes.map(
           (mode) => `${line.startsWith('/approval ') ? '/approval' : '/permission'} ${mode}`,
         )
-      : slashCommands
+      : [...BUILTIN_COMMANDS.map((command) => command.name), ...custom.map((c) => c.name)]
   return [...new Set(candidates.filter((candidate) => candidate.startsWith(line)))]
-}
-
-function printSlashHelp(): void {
-  process.stderr.write(
-    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /undo [--force]     revert the agent's file edits from the last turn\n  /redo [--force]     re-apply the last undone edits\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /compact             summarize older conversation to free context\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
-  )
 }
 
 export function preferredCodingModel(models: CodingModel[]): CodingModel | undefined {
@@ -285,6 +273,9 @@ export function registerCode(program: Command): void {
         }
         const projectContext = workspace.redact(await workspace.context(userInstructions))
         const history = new ChangeHistory(workspace)
+        const customCommands = interactive
+          ? await loadCustomCommands(workspace, join(dirname(configPath()), 'commands'))
+          : []
         const notes: string[] = []
         const messages: CodeMessage[] = [
           {
@@ -323,7 +314,7 @@ export function registerCode(program: Command): void {
                 input: process.stdin,
                 output: process.stderr,
                 completer: (line: string): [string[], string] => [
-                  slashCompletions(line, availableModels),
+                  slashCompletions(line, availableModels, customCommands),
                   line,
                 ],
               })
@@ -363,7 +354,7 @@ export function registerCode(program: Command): void {
             if (!task) continue
             if (interactive && (task === '/exit' || task === '/quit')) break
             if (interactive && (task === '/' || task === '/help')) {
-              printSlashHelp()
+              process.stderr.write(helpText(customCommands))
               task = ''
               continue
             }
@@ -571,6 +562,18 @@ export function registerCode(program: Command): void {
               if (!tui) process.stderr.write(`Switched to the ${mode} agent.\n`)
               task = ''
               continue
+            }
+            if (interactive && (task === '/init' || task.startsWith('/init '))) {
+              const extra = task.slice('/init'.length).trim()
+              task = extra ? `${INIT_PROMPT}\n\nAdditional guidance: ${extra}` : INIT_PROMPT
+            } else if (interactive && task.startsWith('/')) {
+              const space = task.search(/\s/)
+              const name = space === -1 ? task : task.slice(0, space)
+              const custom = customCommands.find((command) => command.name === name)
+              if (custom) {
+                task = expandTemplate(custom.template, space === -1 ? '' : task.slice(space + 1))
+                progress({ type: 'notice', text: `Running ${custom.name}` })
+              }
             }
             if (interactive && task.startsWith('/')) {
               process.stderr.write(
