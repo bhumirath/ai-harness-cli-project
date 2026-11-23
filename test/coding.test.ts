@@ -39,6 +39,14 @@ const call = (name: string, args: unknown, id = 'call1'): CodeMessage => ({
 })
 
 describe('workspace coding tools', () => {
+  it('does not mask values too short to be credentials', async () => {
+    const { workspace } = await fixture()
+    workspace.protectCredentials(['x', 'short'], [])
+    expect(workspace.redact('hello.txt short')).toBe('hello.txt short')
+    workspace.protectCredentials(['a-long-secret-value'], [])
+    expect(workspace.redact('k=a-long-secret-value')).toBe('k=[REDACTED]')
+  })
+
   it('protects CLI credentials in tool output/environment without erasing secrets from source edits', async () => {
     const { root, workspace } = await fixture()
     const secret = 'private-coding-test-key'

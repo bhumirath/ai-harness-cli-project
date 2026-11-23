@@ -338,13 +338,19 @@ export interface WorkspaceOptions {
 /** Called with the previous file content (undefined for a new file) before every write. */
 export type BeforeWrite = (relative: string, previous: string | undefined) => void
 
+/** Shortest value treated as a credential to mask. */
+export const MIN_SECRET_LENGTH = 8
+
 export class WorkspaceTools {
   readonly root: string
   readonly changedFiles = new Set<string>()
   private readonly secrets = new Set<string>()
   private readonly excludedEnvironment = new Set<string>(['HARNESS_TOKEN'])
   protectCredentials(values: (string | undefined)[], environment: string[]): void {
-    for (const value of values) if (value) this.secrets.add(value)
+    // very short values can't be real credentials, and masking them would corrupt ordinary text
+    // (a key of "x" turned every "x" in paths and file content into [REDACTED])
+    for (const value of values)
+      if (value && value.length >= MIN_SECRET_LENGTH) this.secrets.add(value)
     for (const name of environment) this.excludedEnvironment.add(name.toUpperCase())
   }
   redact(value: string): string {
