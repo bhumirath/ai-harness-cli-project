@@ -363,3 +363,20 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
   - [x] Restores use the same workspace/secret-path guards and atomic writes; shell-command side
         effects are documented as not tracked.
   - [x] Unit tests for multi-edit turns, ordering, redo clearing, conflicts and no-op turns.
+
+### CLI-037 · Context management: instructions, @mentions and compaction
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-023, CLI-034
+- Description: keep long coding sessions inside the model context and make project context easy to
+  provide, like OpenCode.
+- Acceptance criteria:
+  - [x] `CLAUDE.md` is used when a directory has no `AGENTS.md` (root and nested); optional
+        user-wide `AGENTS.md` next to the CLI config; platform/date in the system context.
+  - [x] `@path` mentions attach bounded file contents or directory listings through workspace
+        guards; e-mail addresses, npm scopes, missing and protected paths are ignored.
+  - [x] Automatic compaction summarizes older history with the model when estimated/actual input
+        tokens exceed 75% of the context window, >140 messages or ~600 KB, keeping system prompt,
+        recent turns, the plan and tool-call/result pairing; falls back to output truncation.
+  - [x] `/compact` on demand; `--context-tokens` overrides model metadata (default 128000).
+  - [x] Tests for fallback instructions, mentions, thresholds, pairing and in-loop compaction.

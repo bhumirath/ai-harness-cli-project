@@ -114,6 +114,10 @@ export class CodeTui {
       )
       return
     }
+    if (event.type === 'notice') {
+      this.notice(event.text)
+      return
+    }
     if (event.type === 'todo') {
       this.output.write(`${pc.bold('  Plan')}\n`)
       for (const line of clean(event.text).split('\n')) {

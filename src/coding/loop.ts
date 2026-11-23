@@ -1,5 +1,6 @@
 import { CliError, EXIT } from '../api/errors.ts'
 import { WorkspaceTools, knownTool, type TodoItem } from './tools.ts'
+import { compactMessages, needsCompaction } from './context.ts'
 import { Permissions, toolCategory, type ConfirmAnswer } from './permissions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider, ToolResult } from './types.ts'
 
@@ -19,16 +20,28 @@ export interface RunOptions {
   /** Session permission policy; defaults to one derived from `approval`. */
   permissions?: Permissions
   confirm?: (name: string, args: Record<string, unknown>) => Promise<ConfirmAnswer>
+  /** Model context window in tokens; older history is summarized near the limit (default 128k). */
+  contextTokens?: number
   progress?: (event: ProgressEvent) => void
 }
 export interface ProgressEvent {
-  type: 'status' | 'delta' | 'text' | 'tool' | 'result' | 'diff' | 'todo'
+  type: 'status' | 'delta' | 'text' | 'tool' | 'result' | 'diff' | 'todo' | 'notice'
   text: string
   final?: boolean
 }
 const TODO_MARK = { pending: '[ ]', in_progress: '[~]', completed: '[x]', cancelled: '[-]' }
 export function formatTodos(todos: TodoItem[]): string {
   return todos.map((todo) => `${TODO_MARK[todo.status]} ${todo.content}`).join('\n')
+}
+function addUsage(
+  result: CodeResult,
+  usage: { inputTokens: number; outputTokens: number; chargedMicro: string },
+): void {
+  result.usage.inputTokens += usage.inputTokens
+  result.usage.outputTokens += usage.outputTokens
+  result.usage.chargedMicro = (
+    BigInt(result.usage.chargedMicro) + BigInt(usage.chargedMicro)
+  ).toString()
 }
 export async function codingRun(
   provider: CodeProvider,
@@ -44,9 +57,38 @@ export async function codingRun(
     usage: { inputTokens: 0, outputTokens: 0, chargedMicro: '0' },
   }
   const permissions = options.permissions ?? new Permissions(options.approval)
+  let lastInputTokens = 0
   try {
     for (let step = 0; step < options.maxSteps; step++) {
       options.signal.throwIfAborted()
+      if (
+        needsCompaction(
+          messages,
+          { contextTokens: options.contextTokens ?? 128_000 },
+          lastInputTokens,
+        )
+      ) {
+        options.progress?.({ type: 'status', text: 'Compacting conversation' })
+        try {
+          const compaction = await compactMessages(provider, messages, options.signal, {
+            todos: formatTodos(workspace.todos),
+          })
+          addUsage(result, compaction.usage)
+          if (compaction.compacted) {
+            lastInputTokens = 0
+            options.progress?.({
+              type: 'notice',
+              text: `Compacted ${compaction.removed} earlier messages into a summary to stay within the model context.`,
+            })
+          }
+        } catch (error) {
+          options.signal.throwIfAborted()
+          options.progress?.({
+            type: 'notice',
+            text: `Compaction failed (${error instanceof Error ? error.message : 'error'}); truncating older tool output instead.`,
+          })
+        }
+      }
       // Keep tool-call/result pairs intact; compress older tool content before exceeding the API cap.
       if (JSON.stringify(messages).length > 180000) {
         for (const message of messages.slice(0, -12))
@@ -96,11 +138,8 @@ export async function codingRun(
       turn.message = sanitize(turn.message)
       options.signal.throwIfAborted()
       result.steps++
-      result.usage.inputTokens += turn.usage.inputTokens
-      result.usage.outputTokens += turn.usage.outputTokens
-      result.usage.chargedMicro = (
-        BigInt(result.usage.chargedMicro) + BigInt(turn.chargedMicro)
-      ).toString()
+      lastInputTokens = turn.usage.inputTokens
+      addUsage(result, { ...turn.usage, chargedMicro: turn.chargedMicro })
       if (turn.message.role !== 'assistant')
         throw new CliError('Model did not return an assistant turn')
       messages.push(turn.message)

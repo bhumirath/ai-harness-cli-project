@@ -462,32 +462,40 @@ export class WorkspaceTools {
     const result: { path: string; content: string }[] = []
     const discovered: [string, string][] = []
     for (const directory of directories) {
-      const candidate = path.join(directory, 'AGENTS.md')
-      try {
-        const real = await this.resolve(candidate)
-        const { content, hash } = await this.read(real)
-        if (this.seenInstructions.get(candidate) === hash) continue
-        if (content.length > 16000)
-          throw new Error(
-            'Project instructions exceed the per-file limit; provide a smaller focused workspace',
-          )
-        result.push({ path: path.relative(this.root, candidate), content })
-        if (JSON.stringify(result).length > 24000)
-          throw new Error(
-            'Project instructions exceed the context limit; provide a smaller focused workspace',
-          )
-        discovered.push([candidate, hash])
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      // AGENTS.md is preferred; CLAUDE.md is a fallback for projects set up for other agents.
+      for (const name of ['AGENTS.md', 'CLAUDE.md']) {
+        const candidate = path.join(directory, name)
+        try {
+          const real = await this.resolve(candidate)
+          const { content, hash } = await this.read(real)
+          if (this.seenInstructions.get(candidate) === hash) break
+          if (content.length > 16000)
+            throw new Error(
+              'Project instructions exceed the per-file limit; provide a smaller focused workspace',
+            )
+          result.push({ path: path.relative(this.root, candidate), content })
+          if (JSON.stringify(result).length > 24000)
+            throw new Error(
+              'Project instructions exceed the context limit; provide a smaller focused workspace',
+            )
+          discovered.push([candidate, hash])
+          break
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+        }
       }
     }
     for (const [candidate, hash] of discovered) this.seenInstructions.set(candidate, hash)
     return result
   }
-  async context(): Promise<string> {
+  async context(userInstructions?: string): Promise<string> {
     const instructions = await this.instructions(path.join(this.root, '__context__'))
     const files = await this.execute('list_files', { path: '.' }, new AbortController().signal)
-    return `Workspace: ${this.root}\nRoot entries: ${JSON.stringify(files)}\nProject instructions:\n${instructions.map((i) => `${i.path}:\n${i.content}`).join('\n\n')}`
+    const today = new Date().toISOString().slice(0, 10)
+    const user = userInstructions?.trim()
+      ? `\nUser instructions (all projects):\n${userInstructions.trim().slice(0, 16000)}`
+      : ''
+    return `Workspace: ${this.root}\nPlatform: ${process.platform}; date: ${today}\nRoot entries: ${JSON.stringify(files)}${user}\nProject instructions:\n${instructions.map((i) => `${i.path}:\n${i.content}`).join('\n\n')}`
   }
   private async replace(
     file: string,

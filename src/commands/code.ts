@@ -12,14 +12,19 @@ import { WorkspaceTools } from '../coding/tools.ts'
 import { CodeTui } from '../coding/tui.ts'
 import { systemPrompt, type AgentMode } from '../coding/prompt.ts'
 import { ChangeHistory } from '../coding/snapshots.ts'
+import { compactMessages, expandMentions } from '../coding/context.ts'
+import { formatTodos } from '../coding/loop.ts'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { Permissions, parsePermissionConfig } from '../coding/permissions.ts'
 import { SessionStore, type CodingSession } from '../coding/sessions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
 import type { ProgressEvent } from '../coding/loop.ts'
-import { loadConfig, saveConfig } from '../config.ts'
+import { configPath, loadConfig, saveConfig } from '../config.ts'
 
 type CodingModel = {
   ref: string
+  contextWindow?: number
   modelId: string
   displayName: string
   provider: string
@@ -44,6 +49,7 @@ const slashCommands = [
   '/session',
   '/sessions',
   '/diff',
+  '/compact',
   '/new',
   '/help',
   '/exit',
@@ -65,7 +71,7 @@ export function slashCompletions(line: string, models: CodingModel[] = []): stri
 
 function printSlashHelp(): void {
   process.stderr.write(
-    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /undo [--force]     revert the agent's file edits from the last turn\n  /redo [--force]     re-apply the last undone edits\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
+    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /undo [--force]     revert the agent's file edits from the last turn\n  /redo [--force]     re-apply the last undone edits\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /compact             summarize older conversation to free context\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
   )
 }
 
@@ -115,6 +121,10 @@ export function registerCode(program: Command): void {
     .option('--agent <mode>', 'build (edit and run) | plan (read-only analysis)', 'build')
     .option('--max-steps <n>', 'maximum model turns per task', '50')
     .option(
+      '--context-tokens <n>',
+      'model context window used for automatic compaction (default: model metadata or 128000)',
+    )
+    .option(
       '--max-output-tokens <n>',
       'maximum tokens per model response (harness 64..4096, direct 64..32768)',
       '4096',
@@ -135,6 +145,7 @@ export function registerCode(program: Command): void {
           yes?: boolean
           agent: string
           maxSteps: string
+          contextTokens?: string
           maxOutputTokens: string
           plain?: boolean
           resume?: string
@@ -171,6 +182,13 @@ export function registerCode(program: Command): void {
           throw new CliError('--base-url is for the direct backend', { exitCode: EXIT.usage })
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(opts.apiKeyEnv))
           throw new CliError('Invalid API key environment variable name', { exitCode: EXIT.usage })
+        if (
+          opts.contextTokens !== undefined &&
+          (!/^\d+$/.test(opts.contextTokens) ||
+            Number(opts.contextTokens) < 8000 ||
+            Number(opts.contextTokens) > 10_000_000)
+        )
+          throw new CliError('--context-tokens must be 8000..10000000', { exitCode: EXIT.usage })
         const json = Boolean(globals(cmd).json)
         const interactive = words.length === 0
         if (!interactive && !words.join(' ').trim())
@@ -254,7 +272,18 @@ export function registerCode(program: Command): void {
           parsePermissionConfig(loadConfig().codePermissions),
           opts.agent as AgentMode,
         )
-        const projectContext = workspace.redact(await workspace.context())
+        const contextTokens = () =>
+          opts.contextTokens
+            ? Number(opts.contextTokens)
+            : (availableModels.find((model) => model.ref === selectedModel)?.contextWindow ??
+              128_000)
+        let userInstructions: string | undefined
+        try {
+          userInstructions = readFileSync(join(dirname(configPath()), 'AGENTS.md'), 'utf8')
+        } catch {
+          /* optional */
+        }
+        const projectContext = workspace.redact(await workspace.context(userInstructions))
         const history = new ChangeHistory(workspace)
         const notes: string[] = []
         const messages: CodeMessage[] = [
@@ -501,6 +530,35 @@ export function registerCode(program: Command): void {
               task = ''
               continue
             }
+            if (interactive && task === '/compact') {
+              current = new AbortController()
+              try {
+                tui?.progress({ type: 'status', text: 'Compacting conversation' })
+                const compaction = await compactMessages(provider, messages, current.signal, {
+                  keep: 2,
+                  todos: formatTodos(workspace.todos),
+                })
+                tui?.finishTurn()
+                process.stderr.write(
+                  compaction.compacted
+                    ? `Compacted ${compaction.removed} messages into a summary.\n`
+                    : 'Nothing to compact yet.\n',
+                )
+                if (session && compaction.compacted) {
+                  session.messages = messages.map((message) => ({ ...message }))
+                  await sessions.save(session)
+                }
+              } catch (error) {
+                tui?.finishTurn()
+                process.stderr.write(
+                  `Compaction failed: ${error instanceof Error ? stripVTControlCharacters(error.message) : 'error'}\n`,
+                )
+              } finally {
+                current = undefined
+              }
+              task = ''
+              continue
+            }
             if (interactive && (task === '/plan' || task === '/build')) {
               const mode: AgentMode = task === '/plan' ? 'plan' : 'build'
               permissions.agent = mode
@@ -521,12 +579,18 @@ export function registerCode(program: Command): void {
               task = ''
               continue
             }
-            const content = notes.length ? `${notes.splice(0).join('\n')}\n\n${task}` : task
+            const mentioned = await expandMentions(task, workspace)
+            if (mentioned.attached.length)
+              progress({ type: 'notice', text: `Attached ${mentioned.attached.join(', ')}` })
+            const content = notes.length
+              ? `${notes.splice(0).join('\n')}\n\n${mentioned.content}`
+              : mentioned.content
             messages.push({ role: 'user', content: workspace.redact(content) })
             history.begin(task)
             current = new AbortController()
             const result = await codingRun(provider, workspace, messages, {
               maxSteps: Number(opts.maxSteps),
+              contextTokens: contextTokens(),
               signal: current.signal,
               approval: opts.approval as ApprovalMode,
               progress,
