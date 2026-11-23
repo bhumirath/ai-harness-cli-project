@@ -64,7 +64,8 @@ Protocol: `../ai-harness-doc-project/AGENTS.md`. Plan: `../ai-harness-doc-projec
   Owner created the GitHub repository on 2026-11-17; origin is configured. Needs GitHub
   authentication plus npm publishing access/bootstrap/trusted publisher (O-10).
   Update notice implemented in CLI-014. SEA binaries for Linux/macOS/Windows are published in
-  GitHub Release v0.3.1 and Homebrew distribution is live. npm remains disabled because the
+  GitHub Release v0.3.1 and Homebrew distribution is live. v0.3.3 (2026-11-23): default API
+  https://aiharness.bhumirath.com; Homebrew formula now installs the raw darwin-arm64 binary. npm remains disabled because the
   configured package name belongs to an unrelated project.
 
 ### CLI-007 · Nice to have
