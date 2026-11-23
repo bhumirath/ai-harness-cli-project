@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
 import { mkdtemp, readFile, writeFile, mkdir, rm, symlink, utimes } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -200,7 +200,8 @@ describe('run_command', () => {
       { command: 'node -e "console.log(process.cwd())"', cwd: 'pkg' },
       signal(),
     )
-    expect(String(where.stdout).trim()).toBe(path.join(root, 'pkg'))
+    // macOS tmp dirs live behind the /var → /private/var symlink
+    expect(String(where.stdout).trim()).toBe(realpathSync(path.join(root, 'pkg')))
     expect(
       (await workspace.execute('run_command', { command: 'echo x', cwd: '..' }, signal())).error,
     ).toMatch(/escapes/)
