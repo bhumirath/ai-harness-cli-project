@@ -348,3 +348,18 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
   - [x] `--agent plan|build`, `/plan` and `/build`: the plan agent gets only read/web/todo tools,
         a planning system prompt, and edit/command calls are refused without touching files.
   - [x] Unit and loop integration tests.
+
+### CLI-036 · Undo/redo of agent file edits
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-034
+- Description: snapshot files before every tool write so a whole agent turn can be reverted and
+  re-applied from the interactive session, with diffs.
+- Acceptance criteria:
+  - [x] Each user turn is one change set (previous content captured before each write, final
+        content at turn end); created files are removed on undo; history keeps 50 turns in memory.
+  - [x] `/undo` and `/redo` print a diff per restored file and tell the model on the next turn.
+  - [x] Files changed by the user after the agent edit are not overwritten unless `--force`.
+  - [x] Restores use the same workspace/secret-path guards and atomic writes; shell-command side
+        effects are documented as not tracked.
+  - [x] Unit tests for multi-edit turns, ordering, redo clearing, conflicts and no-op turns.

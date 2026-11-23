@@ -36,7 +36,7 @@ const integer = (value: unknown, fallback: number, max: number) => {
     throw new Error(`Expected an integer from 1 to ${max}`)
   return value as number
 }
-function diffPreview(file: string, before: string, after: string): string {
+export function diffPreview(file: string, before: string, after: string): string {
   const oldLines = before.split('\n')
   const newLines = after.split('\n')
   let start = 0
@@ -403,6 +403,40 @@ export class WorkspaceTools {
         suffix.unshift(path.basename(existing))
         existing = path.dirname(existing)
       }
+    }
+  }
+  /** Current text of a workspace file, or undefined when it does not exist. */
+  async readText(relative: string): Promise<string | undefined> {
+    try {
+      return (await this.read(await this.resolve(relative))).content
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+      throw error
+    }
+  }
+  /**
+   * Restores a file to `content` (undefined deletes it) for undo/redo. Uses the same workspace and
+   * secret-path guards as the model tools, and writes atomically.
+   */
+  async restoreFile(relative: string, content: string | undefined): Promise<void> {
+    const file = await this.resolve(relative)
+    if (content === undefined) {
+      await fs.rm(file, { force: true })
+      return
+    }
+    await fs.mkdir(path.dirname(file), { recursive: true })
+    let mode = 0o644
+    try {
+      mode = (await fs.stat(file)).mode & 0o777
+    } catch {
+      /* new file */
+    }
+    const temporary = path.join(path.dirname(file), `.harness-${randomUUID()}.tmp`)
+    try {
+      await fs.writeFile(temporary, content, { mode, flag: 'wx' })
+      await fs.rename(temporary, file)
+    } finally {
+      await fs.rm(temporary, { force: true })
     }
   }
   private async read(file: string): Promise<{ content: string; hash: string }> {

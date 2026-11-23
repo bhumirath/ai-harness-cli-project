@@ -11,6 +11,7 @@ import { codingRun } from '../coding/loop.ts'
 import { WorkspaceTools } from '../coding/tools.ts'
 import { CodeTui } from '../coding/tui.ts'
 import { systemPrompt, type AgentMode } from '../coding/prompt.ts'
+import { ChangeHistory } from '../coding/snapshots.ts'
 import { Permissions, parsePermissionConfig } from '../coding/permissions.ts'
 import { SessionStore, type CodingSession } from '../coding/sessions.ts'
 import type { ApprovalMode, CodeMessage, CodeProvider } from '../coding/types.ts'
@@ -36,6 +37,8 @@ const slashCommands = [
   '/model',
   '/plan',
   '/build',
+  '/undo',
+  '/redo',
   '/permission',
   '/approval',
   '/session',
@@ -62,7 +65,7 @@ export function slashCompletions(line: string, models: CodingModel[] = []): stri
 
 function printSlashHelp(): void {
   process.stderr.write(
-    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
+    `\nCommands:\n  /model              choose and remember a coding model\n  /model <id>         switch directly by model id or ref\n  /permission         choose prompt, read-only, or auto\n  /plan               switch to the read-only plan agent\n  /build              switch to the build agent (edits and commands)\n  /undo [--force]     revert the agent's file edits from the last turn\n  /redo [--force]     re-apply the last undone edits\n  /session            show the current resumable session\n  /sessions           list saved coding sessions\n  /diff                show the current workspace diff\n  /new                 clear the current conversation context\n  /help                show this command list\n  /exit                leave coding mode\n\nResume later with: harness code --resume <session-id>\nTip: type part of a command and press Tab to complete it.\n`,
   )
 }
 
@@ -252,6 +255,8 @@ export function registerCode(program: Command): void {
           opts.agent as AgentMode,
         )
         const projectContext = workspace.redact(await workspace.context())
+        const history = new ChangeHistory(workspace)
+        const notes: string[] = []
         const messages: CodeMessage[] = [
           {
             role: 'system',
@@ -474,6 +479,28 @@ export function registerCode(program: Command): void {
               task = ''
               continue
             }
+            const undoMatch = /^\/(undo|redo)(?:\s+(--force))?$/.exec(task)
+            if (interactive && undoMatch) {
+              const undo = undoMatch[1] === 'undo'
+              const reverted = undo
+                ? await history.undo(Boolean(undoMatch[2]))
+                : await history.redo(Boolean(undoMatch[2]))
+              if (!reverted.ok) {
+                process.stderr.write(
+                  `${reverted.error}${reverted.conflicts.length ? `: ${reverted.conflicts.map((file) => workspace.redact(file)).join(', ')}` : ''}\n`,
+                )
+              } else {
+                for (const diff of reverted.diffs) progress({ type: 'diff', text: diff })
+                process.stderr.write(
+                  `${undo ? 'Undid' : 'Redid'} "${workspace.redact(reverted.label ?? '')}": ${reverted.files.map((file) => workspace.redact(file)).join(', ')}\n`,
+                )
+                notes.push(
+                  `[The user ${undo ? 'reverted' : 're-applied'} the file changes from the turn "${reverted.label}" (${reverted.files.join(', ')}). Read files again before editing them.]`,
+                )
+              }
+              task = ''
+              continue
+            }
             if (interactive && (task === '/plan' || task === '/build')) {
               const mode: AgentMode = task === '/plan' ? 'plan' : 'build'
               permissions.agent = mode
@@ -494,7 +521,9 @@ export function registerCode(program: Command): void {
               task = ''
               continue
             }
-            messages.push({ role: 'user', content: workspace.redact(task) })
+            const content = notes.length ? `${notes.splice(0).join('\n')}\n\n${task}` : task
+            messages.push({ role: 'user', content: workspace.redact(content) })
+            history.begin(task)
             current = new AbortController()
             const result = await codingRun(provider, workspace, messages, {
               maxSteps: Number(opts.maxSteps),
@@ -518,6 +547,7 @@ export function registerCode(program: Command): void {
                 : undefined,
             })
             current = undefined
+            await history.commit()
             if (session) {
               session.messages = messages.map((message) => ({ ...message }))
               await sessions.save(session)
