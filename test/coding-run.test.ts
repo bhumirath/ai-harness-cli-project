@@ -1,10 +1,13 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { main } from '../src/index.ts'
+import { codingRun } from '../src/coding/loop.ts'
+import { Permissions } from '../src/coding/permissions.ts'
+import { WorkspaceTools } from '../src/coding/tools.ts'
 import type { CodeMessage } from '../src/coding/types.ts'
 
 const temporary: string[] = []
@@ -198,5 +201,93 @@ describe('non-interactive coding runs', () => {
     expect(result.code).toBe(0)
     const user = model.requests[0]!.messages.find((message) => message.role === 'user')
     expect(user?.content).toContain('<file path="notes.md">\nremember the milk')
+  })
+
+  it('runs the project check command after edits and returns diagnostics to the model', async () => {
+    let diagnostics: unknown
+    const model = await scriptedModel([
+      () => call('write_file', { path: 'a.js', content: 'broken(' }, 'w1'),
+      (body) => {
+        diagnostics = JSON.parse(body.messages.at(-1)!.content!).diagnostics
+        return { role: 'assistant', content: 'Saw the check failure.' }
+      },
+    ])
+    const { root, invoke } = await run(['code'])
+    await writeFile(
+      path.join(root, '.harness-check.mjs'),
+      "console.error('a.js: SyntaxError'); process.exit(3)\n",
+    )
+    await mkdir(path.join(root, '.harness'), { recursive: true })
+    await writeFile(
+      path.join(root, '.harness', 'config.json'),
+      JSON.stringify({ check: 'node .harness-check.mjs' }),
+    )
+    const result = await invoke([
+      '-p',
+      'write a.js',
+      '--backend',
+      'direct',
+      '--base-url',
+      model.url,
+      '--model',
+      'mock',
+      '--yes',
+      '--no-session',
+      '--json',
+    ])
+    expect(result.code).toBe(0)
+    expect(diagnostics).toMatchObject({
+      ok: false,
+      exitCode: 3,
+      command: 'node .harness-check.mjs',
+    })
+    expect(JSON.stringify(diagnostics)).toContain('SyntaxError')
+  })
+
+  it('skips the check for the rest of the run when command permission is denied', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'harness-run-'))
+    temporary.push(root)
+    const workspace = await WorkspaceTools.open(root)
+    const script = [
+      call('write_file', { path: 'a.txt', content: 'a' }, 'w1'),
+      call('write_file', { path: 'b.txt', content: 'b' }, 'w2'),
+      { role: 'assistant' as const, content: 'done' },
+    ]
+    const notices: string[] = []
+    const asked: string[] = []
+    const messages: CodeMessage[] = [{ role: 'user', content: 'go' }]
+    const result = await codingRun(
+      {
+        async turn() {
+          const message = script.shift()!
+          return {
+            message,
+            finishReason: message.tool_calls ? 'tool_calls' : 'stop',
+            usage: { inputTokens: 1, outputTokens: 1, cachedInputTokens: 0 },
+            chargedMicro: '0',
+          }
+        },
+      },
+      workspace,
+      messages,
+      {
+        maxSteps: 5,
+        signal: new AbortController().signal,
+        approval: 'prompt',
+        permissions: new Permissions('prompt', { edit: 'allow' }),
+        checkCommand: 'node -e "process.exit(1)"',
+        confirm: async (name) => {
+          asked.push(name)
+          return false
+        },
+        progress: (event) => {
+          if (event.type === 'notice') notices.push(event.text)
+        },
+      },
+    )
+    expect(result.status).toBe('completed')
+    expect(asked).toEqual(['run_command'])
+    expect(notices).toEqual(['Post-edit check skipped for this run.'])
+    expect(JSON.stringify(messages)).not.toContain('diagnostics')
   })
 })

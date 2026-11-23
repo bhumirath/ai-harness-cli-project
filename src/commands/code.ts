@@ -132,6 +132,10 @@ export function registerCode(program: Command): void {
       'maximum tokens per model response (harness 64..4096, direct 64..32768)',
       '4096',
     )
+    .option(
+      '--check <command>',
+      'type-check/lint command run after edits (default: "check" in .harness/config.json)',
+    )
     .option('--plain', 'disable the interactive coding UI')
     .option('--resume <id>', 'resume a private local coding session')
     .option('--no-session', 'do not save this coding session')
@@ -152,6 +156,7 @@ export function registerCode(program: Command): void {
           contextTokens?: string
           maxOutputTokens: string
           plain?: boolean
+          check?: string
           resume?: string
           session: boolean
         },
@@ -298,6 +303,18 @@ export function registerCode(program: Command): void {
           /* optional */
         }
         const projectContext = workspace.redact(await workspace.context(userInstructions))
+        let checkCommand = opts.check?.trim() || undefined
+        if (!checkCommand) {
+          try {
+            const raw = await workspace.readText(join('.harness', 'config.json'))
+            const parsed: unknown = raw ? JSON.parse(raw) : undefined
+            const check = (parsed as { check?: unknown } | undefined)?.check
+            if (typeof check === 'string' && check.trim() && check.length <= 2000)
+              checkCommand = check.trim()
+          } catch {
+            process.stderr.write('Ignoring invalid .harness/config.json\n')
+          }
+        }
         const history = new ChangeHistory(workspace)
         const customCommands = interactive
           ? await loadCustomCommands(workspace, join(dirname(configPath()), 'commands'))
@@ -620,6 +637,7 @@ export function registerCode(program: Command): void {
             const result = await codingRun(provider, workspace, messages, {
               maxSteps: Number(opts.maxSteps),
               contextTokens: contextTokens(),
+              checkCommand,
               signal: current.signal,
               approval: opts.approval as ApprovalMode,
               progress,

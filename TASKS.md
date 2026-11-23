@@ -407,3 +407,17 @@ OpenCode. Gap analysis against OpenCode drives CLI-034..CLI-040.
         todos and session id; exit codes 0 completed, 1 failed/max steps/canceled, 2 usage,
         3 auth, 4 payment.
   - [x] Integration tests against a mock OpenAI-compatible server (no paid APIs).
+
+### CLI-040 · Post-edit project check (LSP-free diagnostics)
+
+- Status: DONE (2026-11-23)
+- Depends on: CLI-035
+- Description: feed type-check/lint results back to the model after it edits files, as a light
+  substitute for OpenCode's LSP diagnostics.
+- Acceptance criteria:
+  - [x] `--check <command>` or `"check"` in `<workspace>/.harness/config.json` runs once after each
+        model step that successfully edited files; bounded output, exit code and a note are attached
+        to the last edit result as `diagnostics`.
+  - [x] The check is an ordinary command: it needs command permission (ask by default, "always"
+        grant for the exact command, auto with `--yes`); a denial skips it for the rest of the run.
+  - [x] Integration tests for diagnostics delivery and denial.

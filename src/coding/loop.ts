@@ -20,6 +20,11 @@ export interface RunOptions {
   /** Session permission policy; defaults to one derived from `approval`. */
   permissions?: Permissions
   confirm?: (name: string, args: Record<string, unknown>) => Promise<ConfirmAnswer>
+  /**
+   * Project check command (type checker/linter) run after steps that edited files; its result is
+   * attached to the last edit result. It needs command permission like any other command.
+   */
+  checkCommand?: string
   /** Model context window in tokens; older history is summarized near the limit (default 128k). */
   contextTokens?: number
   progress?: (event: ProgressEvent) => void
@@ -58,6 +63,47 @@ export async function codingRun(
   }
   const permissions = options.permissions ?? new Permissions(options.approval)
   let lastInputTokens = 0
+  let checkDisabled = false
+  /** Runs the check command and attaches diagnostics; returns false when permission is denied. */
+  const runCheck = async (target: CodeMessage): Promise<boolean> => {
+    const args = { command: options.checkCommand!, timeoutMs: 300_000 }
+    let decision = permissions.check('run_command', args)
+    if (decision === 'ask') {
+      const answer = await options.confirm?.('run_command', args)
+      if (answer === 'always') permissions.grant('run_command', args)
+      decision = answer ? 'allow' : 'deny'
+    }
+    if (decision !== 'allow') {
+      options.progress?.({ type: 'notice', text: 'Post-edit check skipped for this run.' })
+      return false
+    }
+    options.progress?.({ type: 'tool', text: `check ${JSON.stringify({ command: args.command })}` })
+    const check = await workspace.execute('run_command', args, options.signal)
+    options.progress?.({
+      type: 'result',
+      text: check.ok ? 'check: done' : `check: failed (exit ${String(check.exitCode)})`,
+    })
+    const output = `${String(check.stdout ?? '')}${String(check.stderr ?? check.error ?? '')}`
+    let previous: Record<string, unknown> = {}
+    try {
+      previous = JSON.parse(target.content ?? '{}') as Record<string, unknown>
+    } catch {
+      /* keep an empty object */
+    }
+    target.content = workspace.stringify({
+      ...previous,
+      diagnostics: {
+        command: args.command,
+        ok: check.ok,
+        exitCode: check.exitCode,
+        output: output.length > 6000 ? `…${output.slice(-6000)}` : output,
+        note: check.ok
+          ? 'Project check passed after this step.'
+          : 'Project check failed after this step; fix the reported problems.',
+      },
+    })
+    return true
+  }
   try {
     for (let step = 0; step < options.maxSteps; step++) {
       options.signal.throwIfAborted()
@@ -164,6 +210,7 @@ export async function codingRun(
       }
       if (calls.length > 16) throw new CliError('Too many model tool calls in one step')
       const ids = new Set<string>()
+      let lastEdit: CodeMessage | undefined
       for (const call of calls) {
         options.signal.throwIfAborted()
         if (ids.has(call.id)) throw new CliError('Model returned duplicate tool call ids')
@@ -235,7 +282,10 @@ export async function codingRun(
               : serialized,
           tool_call_id: call.id,
         })
+        if (output.ok && toolCategory(call.function.name) === 'edit') lastEdit = messages.at(-1)
       }
+      if (lastEdit && options.checkCommand && !checkDisabled)
+        checkDisabled = !(await runCheck(lastEdit))
     }
     return result
   } catch (error) {
