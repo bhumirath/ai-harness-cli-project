@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install --global npm@11
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cli-package
           path: release
